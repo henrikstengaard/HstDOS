@@ -1,0 +1,32 @@
+# Makefile
+
+# To compile in small model, set below: MODEL=s
+
+# WARNING: the small model is supported but only for small values of
+# MAX_WBITS and MAX_MEM_LEVEL. For example:
+#    -DMAX_WBITS=11 -DMAX_MEM_LEVEL=3
+# If you wish to reduce the memory requirements (default 256K for big
+# objects plus a few K), you can add to CFLAGS below:
+#   -DMAX_MEM_LEVEL=7 -DMAX_WBITS=14
+
+# ------------------------------------------------------
+MODEL=s
+CC=tcc
+LD=tcc
+AR=tlib
+CFLAGS=-O2 -G -Z -m$(MODEL) -DMAX_WBITS=11 -DMAX_MEM_LEVEL=3
+#CFLAGS=-O2 -G -Z -m$(MODEL) -j1
+LDFLAGS=-m$(MODEL) -f-
+
+# targets
+all: hstdos.exe
+
+.c.obj:
+	$(CC) -c $(CFLAGS) $*.c
+
+hstdos.exe: hstdos.obj
+	$(LD) $(LDFLAGS) hstdos.obj
+
+clean:
+	-del *.obj
+	-del *.exe

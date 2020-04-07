@@ -1,0 +1,22 @@
+Turbo C++ Version 3.00 Copyright (c) 1992 Borland International
+c:\unrar250\unrar.c:
+Error c:\unrar250\os.h 67: Unable to open include file 'unistd.h'
+Error c:\unrar250\os.c 12: Undefined symbol 'mode_t' in function MakeDir
+Warning c:\unrar250\os.c 14: Parameter 'Attr' is never used in function MakeDir
+Warning c:\unrar250\os.c 23: Parameter 'MSec' is never used in function MakeSound
+Warning c:\unrar250\os.c 23: Parameter 'Freq' is never used in function MakeSound
+Warning c:\unrar250\os.c 50: Parameter 'NumDrive' is never used in function IsRemovable
+Warning c:\unrar250\os.c 196: Parameter 'FPtr' is never used in function SetOpenFileStat
+Error c:\unrar250\os.c 206: Undefined symbol 'mode_t' in function SetCloseFileStat
+Error c:\unrar250\os.c 206: Function call missing ) in function SetCloseFileStat
+Warning c:\unrar250\os.c 218: Parameter 'FPtr' is never used in function SetOpenFileTime
+Warning c:\unrar250\os.c 218: Parameter 'ft' is never used in function SetOpenFileTime
+Warning c:\unrar250\os.c 312: Parameter 'Sharing' is never used in function ShareOpen
+Warning c:\unrar250\os.c 488: Parameter 'Ch' is never used in function IsDriveDiv
+Warning c:\unrar250\os.c 515: Parameter 'CheckFile' is never used in function CheckForDevice
+Warning c:\unrar250\unpack.c 186: Constant out of range in comparison in function Unpack
+Warning c:\unrar250\unpack.c 218: Constant out of range in comparison in function Unpack
+Error c:\unrar250\unrar.c 37: Undefined symbol 'SIGBREAK' in function main
+*** 5 errors in Compile ***
+
+	Available memory 4007896

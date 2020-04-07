@@ -1,0 +1,9 @@
+#include <string.h>
+
+class Application
+{
+	public:
+	char* Name;
+	char* Directory;
+	char* Command;
+};
