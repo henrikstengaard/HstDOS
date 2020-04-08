@@ -1,5 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef INIFILE_C_
+#define INIFILE_C_
+
 #include "string.c"
 #include "inidata.c"
 
@@ -129,3 +130,5 @@ IniData* readIniFile(char* path)
 
     return iniData;
 }
+
+#endif

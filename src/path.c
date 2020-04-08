@@ -1,9 +1,9 @@
-#include <stdio.h>
-#include <dirent.h>
-#include <sys/stat.h>
+#ifndef PATH_C_
+#define PATH_C_
+
 #include "dirdata.c"
 
-char *getCurrentDrive()
+char* getCurrentDrive()
 {
 	char path[255];
 	strcpy(path, "X:\\");
@@ -11,25 +11,26 @@ char *getCurrentDrive()
 	return path;
 }
 
-char *getCurrentPath()
+char* getCurrentPath()
 {
 	char *path = getCurrentDrive();
 	getcurdir(0, path+3);
-	return(path);
+	//path[3] = '\0';
+	return path;
 }
 
-char* combinePath(char* parentPath, char* childPath)
+void combinePath(char* destination, char* parentPath, char* childPath)
 {
-	char path[255];
-	sprintf(path, "%s\\%s", parentPath, childPath);
-	return path;
+	int length;
+	length = strlen(parentPath);
+	sprintf(destination, "%s%s%s", parentPath, length > 0 && parentPath[length - 1] == '\\' ? "" : "\\", childPath);
 }
 
 DirListing* getDirListing(char* path)
 {
 	DirListing* dirListing;
 	DirEntry* dirEntry;
-	char* entryPath;
+	char entryPath[255];
 	struct stat pathStat;
 	DIR *dirPointer = NULL;
 	int isDir;
@@ -51,7 +52,7 @@ DirListing* getDirListing(char* path)
 	while(NULL != (entryPointer = readdir(dirPointer)) )
 	{
 		// combine dir and entry name
-		entryPath = combinePath(path, entryPointer->d_name);
+		combinePath(entryPath, path, entryPointer->d_name);
 
 		// get entry stat
 		if(stat(entryPath, &pathStat) != 0) {
@@ -71,7 +72,7 @@ DirListing* getDirListing(char* path)
 		dirEntry = initDirEntry();
 		dirEntry->isDir = isDir;
 		dirEntry->isFile = isFile;
-		strcpy(dirEntry->path, entryPointer->d_name);
+		strcpy(dirEntry->name, entryPointer->d_name);
 
 		// add dir entry to dir listing
 		addDirEntry(dirListing->entries, dirEntry);
@@ -82,3 +83,5 @@ DirListing* getDirListing(char* path)
 
 	return dirListing;
 }
+
+#endif

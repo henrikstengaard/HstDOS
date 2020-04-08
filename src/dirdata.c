@@ -1,7 +1,8 @@
-#include <stdio.h>
+#ifndef DIRDATA_C_
+#define DIRDATA_C_
 
 typedef struct {
-    char* path;
+    char* name;
     int isDir;
     int isFile;
 } DirEntry;
@@ -27,13 +28,13 @@ DirEntry* initDirEntry()
         printf("Couldn't allocate memory\n");
         return NULL;
     }
-    entry->path = malloc(255 * sizeof(char));
-    if (entry->path == NULL)
+    entry->name = malloc(255 * sizeof(char));
+    if (entry->name == NULL)
     {
         printf("Couldn't allocate memory\n");
         return NULL;
     }
-    strcpy(entry->path, "");
+    strcpy(entry->name, "");
     return entry;
 }
 
@@ -101,9 +102,9 @@ void freeDirEntry(DirEntry* dirEntry)
     {
         return;
     }
-    if (dirEntry->path != NULL)
+    if (dirEntry->name != NULL)
     {
-        free(dirEntry->path);
+        free(dirEntry->name);
     }
 }
 
@@ -134,3 +135,5 @@ void freeDirListing(DirListing* dirListing)
     freeDirEntries(dirListing->entries);
     free(dirListing->path);
 }
+
+#endif

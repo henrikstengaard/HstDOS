@@ -1,4 +1,5 @@
-#include <stdio.h>
+#ifndef INIDATA_C_
+#define INIDATA_C_
 
 typedef struct {
     char* name;
@@ -236,3 +237,5 @@ void freeIniData(IniData* iniData)
     freeIniSections(iniData->sections);
     free(iniData);
 }
+
+#endif

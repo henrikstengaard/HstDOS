@@ -1,6 +1,5 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#ifndef STRING_C_
+#define STRING_C_
 
 // http://www.martinbroadhurst.com/trim-a-string-in-c.html
 char *ltrim(char *str, const char *seps)
@@ -40,3 +39,5 @@ char *trim(char *str)
 {
     return ltrim(rtrim(str, NULL), NULL);
 }
+
+#endif
