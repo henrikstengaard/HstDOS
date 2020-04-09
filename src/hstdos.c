@@ -14,6 +14,13 @@
 #define STATIC_SELECTION_Y = 4
 #define STATIC_SELECTION_CENTER = 15
 
+#define ENTER_KEY = 13
+#define ESC_KEY = 27
+#define ARROW_UP_KEY = 72
+#define ARROW_DOWN_KEY = 80
+#define ARROW_LEFT_KEY = 75
+#define ARROW_RIGHT_KEY = 77
+
 const char *LINE80 = "                                                                                \0";
 
 int getCenterX(char* text)
@@ -104,6 +111,32 @@ void drawCenterMenu(MenuEntriesArray* menuEntries, int selected)
 	}
 }
 
+void writeRunFile(char* path, char* command)
+{
+	char drive[2];
+    FILE* filePointer;
+
+    filePointer = fopen("C:\\_run.bat", "w");
+    if (filePointer == NULL)
+    {
+		printf("failed to open file\n");
+        return;
+    }
+
+	drive[0] = path[0];
+	drive[1] = '\0';
+	fputs("@echo off\n", filePointer);
+	fputs(drive, filePointer);
+	fputs(":\n", filePointer);
+	fputs("CD ", filePointer);
+	fputs(path, filePointer);
+	fputs("\n", filePointer);
+	fputs(command, filePointer);
+	fputs("\n", filePointer);
+
+	fclose(filePointer);
+}
+
 void testMem()
 {
 	system("d:\\hello.bat \"world\"");
@@ -122,9 +155,12 @@ int main(int argc, char *argv[])
 	int opt;
 	char* menuPath;
 	MenuEntriesArray* menuEntries;
+	MenuEntry* menuEntry;
 	char* path;
 	char key;
-	int selected;
+	int selected, quit, start, enter, back;
+	int menuPathsIndex;
+	char menuPaths[10][255] = {{0}};
 
 	// allocate menu path
     menuPath = malloc(255 * sizeof(char));
@@ -153,8 +189,11 @@ int main(int argc, char *argv[])
 	if (menuPath[0] == '\0')
 	{
 		strcpy(menuPath, getCurrentPath());
-
 	}
+
+	// set root menu path
+	menuPathsIndex = 0;
+	strcpy(menuPaths[0], menuPath);
 
 	// hstDosPath = argv[0]; // needed to reference to where hstdos is executed from to load hstdos.ini with general settings
 	// hstdos.ini, style=static/list
@@ -162,50 +201,106 @@ int main(int argc, char *argv[])
 	// hide cursor
 	_setcursortype(_NOCURSOR);
 
-	menuEntries = buildMenu(menuPath);
-
-	// menu
-	selected = 0;
-	clrscr();
-	drawCenterTitle("HstDOS");
-	drawCenterMenu(menuEntries, selected);
 	do
 	{
-		if(kbhit()){
-			key = getch();
-			switch (key)
+		selected = 0;
+		quit = 0;
+		start = 0;	
+		enter = 0;
+		back = 0;
+
+		menuEntries = buildMenu(menuPath);
+
+		clrscr();
+		drawCenterTitle("HstDOS");
+		drawCenterMenu(menuEntries, selected);
+		do
+		{
+			if(kbhit()){
+				key = getch();
+				switch (key)
+				{
+					case 13:
+						// enter pressed
+						start = 1;
+						enter = 1;
+						break;
+					case 27:
+					case 'Q':
+					case 'q':
+						// esc pressed
+						quit = 1;
+						break;
+					case 72:
+						// arrow up pressed
+						selected--;
+						if (selected >= 0)
+						{
+							drawCenterMenu(menuEntries, selected);
+						}
+						else
+						{
+							selected = 0;
+						}
+						break;
+					case 80:
+						// arrow down pressed
+						selected++;
+						if (selected < menuEntries->count)
+						{
+							drawCenterMenu(menuEntries, selected);
+						}
+						else
+						{
+							selected = menuEntries->count - 1;
+						}
+						break;
+					case 77:
+						enter = 1;
+						// arrow right pressed
+						break;
+					case 75:
+						// arrow left pressed
+						back = menuPathsIndex > 0;
+						break;
+				}
+			}		
+		} while(quit == 0 && enter == 0 && back == 0);
+
+		printf("\n");
+		if (enter)
+		{
+			menuEntry = &menuEntries->array[selected];
+			if (start && (menuEntry->isFile || menuEntry->autostart))
 			{
-				case 72:
-					// arrow up pressed
-					selected--;
-					if (selected >= 0)
-					{
-						drawCenterMenu(menuEntries, selected);
-					}
-					else
-					{
-						selected = 0;
-					}
-					break;
-
-				case 80:
-					// arrow down pressed
-					selected++;
-					if (selected < menuEntries->count)
-					{
-						drawCenterMenu(menuEntries, selected);
-					}
-					else
-					{
-						selected = menuEntries->count - 1;
-					}
-					break;
+				writeRunFile(menuEntry->path, menuEntry->command);
 			}
-		}		
-	} while(key != 'Q' && key != 'q' && key != 27);
+			else if (menuEntry->isDir)
+			{
+				// set menu path
+				strcpy(menuPath, menuEntry->path);
 
+				// add menu paths
+				menuPathsIndex++;
+				strcpy(menuPaths[menuPathsIndex], menuPath);
+
+				// free
+				freeMenuEntries(menuEntries);
+			}
+		}
+		if (back)
+		{
+			menuPathsIndex--;
+			strcpy(menuPath, menuPaths[menuPathsIndex]);
+
+			// free
+			freeMenuEntries(menuEntries);
+		}
+	} while (quit == 0 && start == 0);
+	
 	// free
 	freeMenuEntries(menuEntries);
+
 	free(menuPath);
 
 	// print goodbye message
@@ -215,6 +310,13 @@ int main(int argc, char *argv[])
 
 	// show cursor
 	_setcursortype(_NORMALCURSOR);
+
+	if (start)
+	{
+		return 0;
+	}
+
+	exit(1);
 
 	return 0;
 }

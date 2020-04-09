@@ -3,7 +3,9 @@
 
 typedef struct {
     char* path;
+    char* command;
     char* name;
+    int autostart;
     int isDir;
     int isFile;
 } MenuEntry;
@@ -31,6 +33,13 @@ MenuEntry* initMenuEntry()
         return NULL;
     }
     strcpy(entry->path, "");
+    entry->command = malloc(255 * sizeof(char));
+    if (entry->command == NULL)
+    {
+        printf("Couldn't allocate memory\n");
+        return NULL;
+    }
+    strcpy(entry->command, "");
     entry->name = malloc(255 * sizeof(char));
     if (entry->name == NULL)
     {
@@ -38,6 +47,9 @@ MenuEntry* initMenuEntry()
         return NULL;
     }
     strcpy(entry->name, "");
+    entry->isDir = 0;
+    entry->isFile = 0;
+    entry->autostart = 0;
     return entry;
 }
 
@@ -63,7 +75,7 @@ MenuEntriesArray* initMenuEntries()
 
 void expandMenuEntries(MenuEntriesArray* entries)
 {
-    entries->size *= 2;
+    entries->size += 10;
     entries->array = realloc(entries->array, entries->size * sizeof(*entries->array));
 }
 
@@ -88,6 +100,14 @@ void freeMenuEntry(MenuEntry* entry)
     if (entry->path != NULL)
     {
         free(entry->path);
+    }
+    if (entry->command != NULL)
+    {
+        free(entry->command);
+    }
+    if (entry->name != NULL)
+    {
+        free(entry->name);
     }
 }
 
