@@ -131,21 +131,11 @@ MenuEntry* getMenuEntryFromDir(char* path)
         return NULL;
     }
 
-    // get autostart property
-    property = getProperty(section->properties, "autostart");
+    // get title property
+    property = getProperty(section->properties, "title");
 
-    // return null, if autostart property doesn't exist
+    // return null, if name property doesn't exist
     if (property == NULL)
-    {
-        freeIniData(iniData);
-        return NULL;
-    }
-
-    // get autostart section
-    section = getSection(iniData->sections, property->value);
-
-    // return null, if autostart section doesn't exist
-    if (section == NULL)
     {
         freeIniData(iniData);
         return NULL;
@@ -153,10 +143,10 @@ MenuEntry* getMenuEntryFromDir(char* path)
 
     name = property->value;
 
-    // get name property
-    property = getProperty(section->properties, "name");
+    // get autostart property
+    property = getProperty(section->properties, "autostart");
 
-    // return null, if name property doesn't exist
+    // return null, if autostart property doesn't exist
     if (property == NULL)
     {
         freeIniData(iniData);
@@ -170,10 +160,10 @@ MenuEntry* getMenuEntryFromDir(char* path)
         return NULL;
     }
 
-    combinePath(execPath, path, name);
+    combinePath(execPath, path, property->value);
 
     menuEntry = initMenuEntry();
-    strcpy(menuEntry->name, property->value);
+    strcpy(menuEntry->name, name);
     menuEntry->path = execPath;
     menuEntry->isDir = 0;
     menuEntry->isFile = 1;
@@ -219,8 +209,6 @@ MenuEntriesArray* buildMenu(char* path)
         }
 
         combinePath(entryPath, path, dirEntry->name);
-
-        printf("entry path = '%s'\n", entryPath);
 
         if (dirEntry->isDir)
         {
