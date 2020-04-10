@@ -21,7 +21,8 @@
 #define ARROW_LEFT_KEY = 75
 #define ARROW_RIGHT_KEY = 77
 
-const char *LINE80 = "                                                                                \0";
+const char* DEFAULT_TITLE = "HstDOS";
+const char* LINE80 = "                                                                                \0";
 
 int getCenterX(char* text)
 {
@@ -31,6 +32,8 @@ int getCenterX(char* text)
 
 void drawCenterTitle(char* title)
 {
+	char text[255];
+
 	// background
 	textbackground(LIGHTCYAN);
 	gotoxy(1, 1);
@@ -40,16 +43,23 @@ void drawCenterTitle(char* title)
 	gotoxy(1, 3);
 	cprintf(LINE80);
 
-	// gettext(1, 1, 4, 1, buffer);
-	// puttext(79, 25, 80, 25, buffer);
-
 	// title text
 	textcolor(WHITE);
-	gotoxy(getCenterX(title), 2);
-	cprintf("%s", title);
+
+	if (title != NULL && title[0] != '\0')
+	{
+		strcpy(text, title);
+	}
+	else
+	{
+		strcpy(text, DEFAULT_TITLE);
+	}
+	
+	gotoxy(getCenterX(text), 2);
+	cprintf("%s", text);
 }
 
-void drawCenterMenu(MenuEntriesArray* menuEntries, int selected)
+void drawCenterMenu(MenuListing* menuListing, int selected)
 {
 	int menuBackgroundColor;
 	int menuTextColor;
@@ -86,11 +96,11 @@ void drawCenterMenu(MenuEntriesArray* menuEntries, int selected)
 
 	y = 5 + (selected > 10 ? 0 : 10 - selected);
 	start = selected > 10 ? selected - 10 : 0;
-	end = selected + 10 > menuEntries->count ? menuEntries->count : selected + 10;
+	end = selected + 10 > menuListing->entries->count ? menuListing->entries->count : selected + 10;
 
 	for (i = start; i < end; i++, y++)
 	{
-		menuEntry = &menuEntries->array[i];
+		menuEntry = &menuListing->entries->array[i];
 		gotoxy(1, y);
 
 		if (i == selected)
@@ -153,23 +163,18 @@ void testMem()
 int main(int argc, char *argv[])
 {
 	int opt;
-	char* menuPath;
-	MenuEntriesArray* menuEntries;
+	// char* menuPath;
+	MenuListing* menuListing;
 	MenuEntry* menuEntry;
-	char* path;
+	char entryPath[255] = {0};
 	char key;
-	int selected, quit, start, enter, back;
-	int menuPathsIndex;
-	char menuPaths[10][255] = {{0}};
+	int quit, start, enter, back;
+	MenuLevel* menuLevel;
+	MenuLevelsArray* menuLevels;
 
-	// allocate menu path
-    menuPath = malloc(255 * sizeof(char));
-    if (menuPath == NULL)
-    {
-        printf("Couldn't allocate memory\n");
-        return NULL;
-    }
-	menuPath[0] = '\0';
+	menuLevels = initMenuLevels();
+	menuLevel = initMenuLevel();
+	addMenuLevel(menuLevels, menuLevel);
 
 	// parse arguments
     while((opt = getopt(argc, argv, ":d:")) != -1)  
@@ -177,7 +182,7 @@ int main(int argc, char *argv[])
         switch(opt)  
         {  
             case 'd':
-				strcpy(menuPath, optarg);
+				strcpy(menuLevel->path, optarg);
                 break;  
             case '?':
                 printf("unknown option: %c\n", optind); 
@@ -186,14 +191,10 @@ int main(int argc, char *argv[])
     }
 
 	// set menu path to current path, if menu path is not set with argument
-	if (menuPath[0] == '\0')
+	if (menuLevel->path[0] == '\0')
 	{
-		strcpy(menuPath, getCurrentPath());
+		strcpy(menuLevel->path, getCurrentPath());
 	}
-
-	// set root menu path
-	menuPathsIndex = 0;
-	strcpy(menuPaths[0], menuPath);
 
 	// hstDosPath = argv[0]; // needed to reference to where hstdos is executed from to load hstdos.ini with general settings
 	// hstdos.ini, style=static/list
@@ -203,17 +204,16 @@ int main(int argc, char *argv[])
 
 	do
 	{
-		selected = 0;
 		quit = 0;
 		start = 0;	
 		enter = 0;
 		back = 0;
 
-		menuEntries = buildMenu(menuPath);
+		menuListing = getMenuEntriesFromPath(menuLevel->path);
 
 		clrscr();
-		drawCenterTitle("HstDOS");
-		drawCenterMenu(menuEntries, selected);
+		drawCenterTitle(menuListing->title);
+		drawCenterMenu(menuListing, menuLevel->selected);
 		do
 		{
 			if(kbhit()){
@@ -233,26 +233,26 @@ int main(int argc, char *argv[])
 						break;
 					case 72:
 						// arrow up pressed
-						selected--;
-						if (selected >= 0)
+						menuLevel->selected--;
+						if (menuLevel->selected >= 0)
 						{
-							drawCenterMenu(menuEntries, selected);
+							drawCenterMenu(menuListing, menuLevel->selected);
 						}
 						else
 						{
-							selected = 0;
+							menuLevel->selected = 0;
 						}
 						break;
 					case 80:
 						// arrow down pressed
-						selected++;
-						if (selected < menuEntries->count)
+						menuLevel->selected++;
+						if (menuLevel->selected < menuListing->entries->count)
 						{
-							drawCenterMenu(menuEntries, selected);
+							drawCenterMenu(menuListing, menuLevel->selected);
 						}
 						else
 						{
-							selected = menuEntries->count - 1;
+							menuLevel->selected = menuListing->entries->count - 1;
 						}
 						break;
 					case 77:
@@ -261,47 +261,52 @@ int main(int argc, char *argv[])
 						break;
 					case 75:
 						// arrow left pressed
-						back = menuPathsIndex > 0;
+						back = menuLevels->count > 1;
 						break;
 				}
 			}		
 		} while(quit == 0 && enter == 0 && back == 0);
 
-		printf("\n");
 		if (enter)
 		{
-			menuEntry = &menuEntries->array[selected];
+			menuEntry = &menuListing->entries->array[menuLevel->selected];
+			combinePath(entryPath, menuListing->path, menuEntry->name);
+			
 			if (start && (menuEntry->isFile || menuEntry->autostart))
 			{
-				writeRunFile(menuEntry->path, menuEntry->command);
+				// write run file to start menu entry
+				writeRunFile(menuListing->path, menuEntry->command);
 			}
 			else if (menuEntry->isDir)
 			{
-				// set menu path
-				strcpy(menuPath, menuEntry->path);
+				// create menu level
+				menuLevel = initMenuLevel();
+				strcpy(menuLevel->path, entryPath);
 
-				// add menu paths
-				menuPathsIndex++;
-				strcpy(menuPaths[menuPathsIndex], menuPath);
+				// add menu level
+				addMenuLevel(menuLevels, menuLevel);
 
 				// free
-				freeMenuEntries(menuEntries);
+				freeMenuListing(menuListing);
 			}
 		}
 		if (back)
 		{
-			menuPathsIndex--;
-			strcpy(menuPath, menuPaths[menuPathsIndex]);
+			freeMenuLevel(&menuLevels->array[menuLevels->count - 1]);
+			menuLevels->count--;
+			menuLevels->size--;
+			resizeMenuLevels(menuLevels);
+
+			menuLevel = &menuLevels->array[menuLevels->count - 1];
 
 			// free
-			freeMenuEntries(menuEntries);
+			freeMenuListing(menuListing);
 		}
 	} while (quit == 0 && start == 0);
 	
 	// free
-	freeMenuEntries(menuEntries);
-
-	free(menuPath);
+	freeMenuListing(menuListing);
+	freeMenuLevels(menuLevels);
 
 	// print goodbye message
 	textbackground(BLACK);

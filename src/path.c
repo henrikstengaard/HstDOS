@@ -15,8 +15,24 @@ char* getCurrentPath()
 {
 	char *path = getCurrentDrive();
 	getcurdir(0, path+3);
-	//path[3] = '\0';
 	return path;
+}
+
+void getBasename(char* destination, char* path)
+{
+	int i, count;
+	int length = strlen(path);
+	for(i = length - 1; i > 0; i--)
+	{
+		if (path[i] == '\\')
+		{
+			break;
+		}
+	}
+
+	count = length - i - 1;
+	strncpy(destination, &path[i + 1], count);
+	destination[count] = '\0';
 }
 
 void combinePath(char* destination, char* parentPath, char* childPath)

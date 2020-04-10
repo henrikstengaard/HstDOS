@@ -154,7 +154,6 @@ MenuEntry* getMenuEntryFromDir(char* path)
 
     menuEntry = initMenuEntry();
     strcpy(menuEntry->name, name);
-    strcpy(menuEntry->path, path);
     strcpy(menuEntry->command, property->value);
     menuEntry->autostart = 1;
     menuEntry->isDir = 1;
@@ -223,7 +222,6 @@ MenuEntriesArray* buildMenu(char* path)
 
         // create menu entry
         menuEntry = initMenuEntry();
-        strcpy(menuEntry->path, path);
         strcpy(menuEntry->name, name);
         if (dirEntry->isFile)
         {
@@ -239,6 +237,67 @@ MenuEntriesArray* buildMenu(char* path)
     free(entryPath);
 
     return menuEntries;
+}
+
+MenuListing* getMenuEntriesFromPath(char* path)
+{
+    MenuListing* menuListing;
+    MenuEntry* menuEntry;
+	char entryPath[255];
+	struct stat pathStat;
+	DIR *dirPointer = NULL;
+	int isDir;
+	int isFile;
+	struct dirent *entryPointer = NULL;
+
+	// open directory
+	if(NULL == (dirPointer = opendir(path)))
+	{
+		printf("\nCannot open Input directory [%s]\n",path);
+		exit(1);
+	}
+
+    // create menu listing
+    menuListing = initMenuListing();
+    getBasename(menuListing->title, path);
+    strcpy(menuListing->path, path);
+
+	// Read the directory contents
+	while(NULL != (entryPointer = readdir(dirPointer)) )
+	{
+		// combine dir and entry name
+		combinePath(entryPath, path, entryPointer->d_name);
+
+		// get entry stat
+		if(stat(entryPath, &pathStat) != 0) {
+			printf("Can't get stat\n");
+            exit(1);
+		}
+
+		isDir = pathStat.st_mode & S_IFDIR;
+		isFile = pathStat.st_mode & S_IFREG;
+
+        // skip entry, if it's current, parent or not executable
+        if (isDir && isCurrentOrParent(entryPointer->d_name) || isFile && !isExecutable(entryPointer->d_name))
+        {
+            continue;
+        }
+
+		// create menu entry
+		menuEntry = initMenuEntry();
+		menuEntry->isDir = isDir;
+		menuEntry->isFile = isFile;
+		strcpy(menuEntry->name, entryPointer->d_name);
+		strcpy(menuEntry->command, entryPointer->d_name);
+
+		// add menu entry
+		addMenuEntry(menuListing->entries, menuEntry);
+	}
+
+	// close directory
+	closedir(dirPointer);
+
+	return menuListing;
 }
 
 #endif
