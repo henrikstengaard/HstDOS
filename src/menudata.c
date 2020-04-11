@@ -178,7 +178,7 @@ void addMenuLevel(MenuLevelsArray* entries, MenuLevel* level)
     // expand entries array, if count is equal to size
     if (entries->count >= entries->size)
     {
-        entries->size += 1;
+        entries->size++;
         resizeMenuLevels(entries);
     }
     

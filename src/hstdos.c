@@ -14,15 +14,32 @@
 #define STATIC_SELECTION_Y = 4
 #define STATIC_SELECTION_CENTER = 15
 
-#define ENTER_KEY = 13
-#define ESC_KEY = 27
-#define ARROW_UP_KEY = 72
-#define ARROW_DOWN_KEY = 80
-#define ARROW_LEFT_KEY = 75
-#define ARROW_RIGHT_KEY = 77
-
 const char* DEFAULT_TITLE = "HstDOS";
 const char* LINE80 = "                                                                                \0";
+
+enum
+{
+	BACKSPACE_KEY	= 8,
+    ENTER_KEY		= 13,
+    ESC_KEY			= 27,
+    HOME_KEY		= 256 + 71,
+    ARROW_UP_KEY	= 256 + 72,
+    PAGE_UP_KEY		= 256 + 73,
+    ARROW_LEFT_KEY	= 256 + 75,
+    ARROW_RIGHT_KEY	= 256 + 77,
+    END_KEY			= 256 + 79,
+    ARROW_DOWN_KEY	= 256 + 80,
+    PAGE_DOWN_KEY	= 256 + 81,
+    DELETE_KEY		= 256 + 83
+};
+
+int getKeyCode(void)
+{
+    int ch = getch();
+    if (ch == 0 || ch == 224)
+        ch = 256 + getch();
+    return ch;
+}
 
 int getCenterX(char* text)
 {
@@ -167,14 +184,14 @@ int main(int argc, char *argv[])
 	MenuListing* menuListing;
 	MenuEntry* menuEntry;
 	char entryPath[255] = {0};
-	char key;
+	int keyCode;
 	int quit, start, enter, back;
 	MenuLevel* menuLevel;
 	MenuLevelsArray* menuLevels;
 
 	menuLevels = initMenuLevels();
-	menuLevel = initMenuLevel();
-	addMenuLevel(menuLevels, menuLevel);
+	addMenuLevel(menuLevels, initMenuLevel());
+	menuLevel = &menuLevels->array[0];
 
 	// parse arguments
     while((opt = getopt(argc, argv, ":d:")) != -1)  
@@ -217,50 +234,71 @@ int main(int argc, char *argv[])
 		do
 		{
 			if(kbhit()){
-				key = getch();
-				switch (key)
+				keyCode = getKeyCode();
+				switch (keyCode)
 				{
-					case 13:
-						// enter pressed
+					case ENTER_KEY:
 						start = 1;
 						enter = 1;
 						break;
-					case 27:
-					case 'Q':
-					case 'q':
-						// esc pressed
+					case ESC_KEY:
 						quit = 1;
 						break;
-					case 72:
-						// arrow up pressed
-						menuLevel->selected--;
-						if (menuLevel->selected >= 0)
+					case ARROW_UP_KEY:
+						if (menuListing->entries->count > 0 && menuLevel->selected > 0)
 						{
+							menuLevel->selected--;
 							drawCenterMenu(menuListing, menuLevel->selected);
 						}
-						else
+						break;
+					case ARROW_DOWN_KEY:
+						if (menuListing->entries->count > 0 && menuLevel->selected < menuListing->entries->count - 1)
+						{
+							menuLevel->selected++;
+							drawCenterMenu(menuListing, menuLevel->selected);
+						}
+						break;
+					case PAGE_UP_KEY:
+						if (menuListing->entries->count > 0 && menuLevel->selected > 0)
+						{
+							menuLevel->selected = menuLevel->selected - 18;
+							if (menuLevel->selected < 0)
+							{
+								menuLevel->selected = 0;
+							}
+							drawCenterMenu(menuListing, menuLevel->selected);
+						}
+						break;
+					case PAGE_DOWN_KEY:
+						if (menuListing->entries->count > 0 && menuLevel->selected < menuListing->entries->count - 1)
+						{
+							menuLevel->selected = menuLevel->selected + 18;
+							if (menuLevel->selected >= menuListing->entries->count)
+							{
+								menuLevel->selected = menuListing->entries->count - 1;
+							}
+							drawCenterMenu(menuListing, menuLevel->selected);
+						}
+						break;
+					case HOME_KEY:
+						if (menuListing->entries->count > 0 && menuLevel->selected > 0)
 						{
 							menuLevel->selected = 0;
-						}
-						break;
-					case 80:
-						// arrow down pressed
-						menuLevel->selected++;
-						if (menuLevel->selected < menuListing->entries->count)
-						{
 							drawCenterMenu(menuListing, menuLevel->selected);
 						}
-						else
+						break;
+					case END_KEY:
+						if (menuListing->entries->count > 0 && menuLevel->selected < menuListing->entries->count - 1)
 						{
 							menuLevel->selected = menuListing->entries->count - 1;
+							drawCenterMenu(menuListing, menuLevel->selected);
 						}
 						break;
-					case 77:
+					case ARROW_RIGHT_KEY:
 						enter = 1;
-						// arrow right pressed
 						break;
-					case 75:
-						// arrow left pressed
+					case BACKSPACE_KEY:
+					case ARROW_LEFT_KEY:
 						back = menuLevels->count > 1;
 						break;
 				}
@@ -292,11 +330,13 @@ int main(int argc, char *argv[])
 		}
 		if (back)
 		{
+			// remove menu level
 			freeMenuLevel(&menuLevels->array[menuLevels->count - 1]);
 			menuLevels->count--;
 			menuLevels->size--;
 			resizeMenuLevels(menuLevels);
 
+			// get current menu level
 			menuLevel = &menuLevels->array[menuLevels->count - 1];
 
 			// free
