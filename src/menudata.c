@@ -4,6 +4,7 @@
 typedef struct {
     char* command;
     char* name;
+    int back;
     int autostart;
     int isDir;
     int isFile;
@@ -60,6 +61,7 @@ MenuEntry* initMenuEntry()
     entry->isDir = 0;
     entry->isFile = 0;
     entry->autostart = 0;
+    entry->back = 0;
     return entry;
 }
 

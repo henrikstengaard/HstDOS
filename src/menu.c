@@ -239,7 +239,7 @@ MenuEntriesArray* buildMenu(char* path)
     return menuEntries;
 }
 
-MenuListing* getMenuEntriesFromPath(char* path)
+MenuListing* getMenuEntriesFromPath(int level, char* path)
 {
     MenuListing* menuListing;
     MenuEntry* menuEntry;
@@ -262,6 +262,16 @@ MenuListing* getMenuEntriesFromPath(char* path)
     getBasename(menuListing->title, path);
     strcpy(menuListing->path, path);
 
+    if (level >= 2)
+    {
+		// add menu entry
+		addMenuEntry(menuListing->entries, initMenuEntry());
+        menuEntry = &menuListing->entries->array[menuListing->entries->count - 1];
+
+		strcpy(menuEntry->name, "Back");
+		menuEntry->back = 1;
+    }
+
 	// Read the directory contents
 	while(NULL != (entryPointer = readdir(dirPointer)) )
 	{
@@ -283,15 +293,15 @@ MenuListing* getMenuEntriesFromPath(char* path)
             continue;
         }
 
+		// add menu entry
+		addMenuEntry(menuListing->entries, initMenuEntry());
+        menuEntry = &menuListing->entries->array[menuListing->entries->count - 1];
+
 		// create menu entry
-		menuEntry = initMenuEntry();
 		menuEntry->isDir = isDir;
 		menuEntry->isFile = isFile;
 		strcpy(menuEntry->name, entryPointer->d_name);
 		strcpy(menuEntry->command, entryPointer->d_name);
-
-		// add menu entry
-		addMenuEntry(menuListing->entries, menuEntry);
 	}
 
 	// close directory

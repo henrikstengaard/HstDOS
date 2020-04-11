@@ -226,8 +226,9 @@ int main(int argc, char *argv[])
 		enter = 0;
 		back = 0;
 
-		menuListing = getMenuEntriesFromPath(menuLevel->path);
+		menuListing = getMenuEntriesFromPath(menuLevels->count, menuLevel->path);
 
+		textbackground(BLACK);
 		clrscr();
 		drawCenterTitle(menuListing->title);
 		drawCenterMenu(menuListing, menuLevel->selected);
@@ -305,9 +306,16 @@ int main(int argc, char *argv[])
 			}		
 		} while(quit == 0 && enter == 0 && back == 0);
 
+		menuEntry = &menuListing->entries->array[menuLevel->selected];
+		if (menuEntry->back)
+		{
+			enter = 0;
+			start = 0;
+			back = 1;
+		}
+
 		if (enter)
 		{
-			menuEntry = &menuListing->entries->array[menuLevel->selected];
 			combinePath(entryPath, menuListing->path, menuEntry->name);
 			
 			if (start && (menuEntry->isFile || menuEntry->autostart))
@@ -317,12 +325,14 @@ int main(int argc, char *argv[])
 			}
 			else if (menuEntry->isDir)
 			{
-				// create menu level
-				menuLevel = initMenuLevel();
-				strcpy(menuLevel->path, entryPath);
+				start = 0;
 
 				// add menu level
-				addMenuLevel(menuLevels, menuLevel);
+				addMenuLevel(menuLevels, initMenuLevel());
+
+				// set menu level
+				menuLevel = &menuLevels->array[menuLevels->count - 1];
+				strcpy(menuLevel->path, entryPath);
 
 				// free
 				freeMenuListing(menuListing);
@@ -330,6 +340,7 @@ int main(int argc, char *argv[])
 		}
 		if (back)
 		{
+
 			// remove menu level
 			freeMenuLevel(&menuLevels->array[menuLevels->count - 1]);
 			menuLevels->count--;
