@@ -39,31 +39,31 @@ typedef struct {
 MenuEntry* initMenuEntry()
 {
     MenuEntry* entry;
-    entry = malloc(sizeof(*entry));
+    entry = calloc(1, sizeof(*entry));
     if (entry == NULL)
     {
         printf("Couldn't allocate memory\n");
-        return NULL;
+        exit(1);
     }
-    entry->command = malloc(255 * sizeof(char));
+    entry->command = calloc(255, sizeof(char));
     if (entry->command == NULL)
     {
         printf("Couldn't allocate memory\n");
-        return NULL;
+        exit(1);
     }
     strcpy(entry->command, "");
-    entry->name = malloc(13 * sizeof(char));
+    entry->name = calloc(13, sizeof(char));
     if (entry->name == NULL)
     {
         printf("Couldn't allocate memory\n");
-        return NULL;
+        exit(1);
     }
     strcpy(entry->name, "");
-    entry->title = malloc(80 * sizeof(char));
+    entry->title = calloc(80, sizeof(char));
     if (entry->title == NULL)
     {
         printf("Couldn't allocate memory\n");
-        return NULL;
+        exit(1);
     }
     strcpy(entry->title, "");
     entry->isDir = 0;
@@ -76,11 +76,11 @@ MenuEntry* initMenuEntry()
 MenuEntriesArray* initMenuEntries()
 {
     MenuEntriesArray* entries;
-    entries = malloc(sizeof(*entries));
+    entries = calloc(1, sizeof(*entries));
     if (entries == NULL)
     {
         printf("Couldn't allocate memory\n");
-        return NULL;
+        exit(1);
     }
     entries->count = 0;
     entries->size = 10;
@@ -96,13 +96,13 @@ MenuEntriesArray* initMenuEntries()
 MenuLevel* initMenuLevel()
 {
     MenuLevel* level;
-    level = malloc(sizeof(*level));
+    level = calloc(1, sizeof(*level));
     if (level == NULL)
     {
         printf("Couldn't allocate memory\n");
         exit(1);
     }
-    level->path = malloc(255 * sizeof(char));
+    level->path = calloc(255, sizeof(char));
     if (level->path == NULL)
     {
         printf("Couldn't allocate memory\n");
@@ -116,11 +116,11 @@ MenuLevel* initMenuLevel()
 MenuLevelsArray* initMenuLevels()
 {
     MenuLevelsArray* entries;
-    entries = malloc(sizeof(*entries));
+    entries = calloc(1, sizeof(*entries));
     if (entries == NULL)
     {
         printf("Couldn't allocate memory\n");
-        return NULL;
+        exit(1);
     }
     entries->count = 0;
     entries->size = 1;
@@ -136,20 +136,20 @@ MenuLevelsArray* initMenuLevels()
 MenuListing* initMenuListing()
 {
     MenuListing* listing;
-    listing = malloc(sizeof(*listing));
+    listing = calloc(1, sizeof(*listing));
     if (listing == NULL)
     {
         printf("Couldn't allocate memory\n");
         exit(1);
     }
-    listing->path = malloc(255 * sizeof(char));
+    listing->path = calloc(255, sizeof(char));
     if (listing->path == NULL)
     {
         printf("Couldn't allocate memory\n");
         exit(1);
     }
     strcpy(listing->path, "");
-    listing->title = malloc(255 * sizeof(char));
+    listing->title = calloc(255, sizeof(char));
     if (listing->title == NULL)
     {
         printf("Couldn't allocate memory\n");
@@ -162,7 +162,7 @@ MenuListing* initMenuListing()
 
 void expandMenuEntries(MenuEntriesArray* entries)
 {
-    entries->size += 10;
+    entries->size += 1;
     entries->array = realloc(entries->array, entries->size * sizeof(*entries->array));
 }
 
@@ -210,6 +210,10 @@ void freeMenuEntry(MenuEntry* entry)
     {
         free(entry->name);
     }
+    if (entry->title != NULL)
+    {
+        free(entry->title);
+    }
 }
 
 void freeMenuEntries(MenuEntriesArray* entries)
@@ -227,7 +231,6 @@ void freeMenuEntries(MenuEntriesArray* entries)
         }    
         free(entries->array);
     }
-    free(entries);
 }
 
 void freeMenuLevel(MenuLevel* menuLevel)
@@ -257,7 +260,6 @@ void freeMenuLevels(MenuLevelsArray* entries)
         }    
         free(entries->array);
     }
-    free(entries);
 }
 
 void freeMenuListing(MenuListing* menuListing)
@@ -275,6 +277,7 @@ void freeMenuListing(MenuListing* menuListing)
         free(menuListing->title);
     }
     freeMenuEntries(menuListing->entries);
+    free(menuListing->entries);
 }
 
 #endif

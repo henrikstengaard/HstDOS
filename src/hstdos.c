@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <conio.h>
+#include <alloc.h>
 #include "getopt.c"
 #include "menu.c"
 
@@ -74,6 +75,8 @@ void drawCenterTitle(char* title)
 	
 	gotoxy(getCenterX(text), 2);
 	cprintf("%s", text);
+	gotoxy(1, 1);
+	cprintf("%u", coreleft());
 }
 
 void drawCenterMenu(MenuListing* menuListing, int selected)
@@ -344,6 +347,7 @@ int main(int argc, char *argv[])
 
 				// free
 				freeMenuListing(menuListing);
+				free(menuListing);
 			}
 		}
 		if (back)
@@ -360,12 +364,15 @@ int main(int argc, char *argv[])
 
 			// free
 			freeMenuListing(menuListing);
+			free(menuListing);
 		}
 	} while (quit == 0 && start == 0);
 	
 	// free
 	freeMenuListing(menuListing);
+	free(menuListing);
 	freeMenuLevels(menuLevels);
+	free(menuLevels);
 
 	// print goodbye message
 	textbackground(BLACK);

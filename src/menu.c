@@ -69,7 +69,7 @@ Section* getSection(SectionsArray* sections, char* name)
     for(i = 0; i < sections->count; i++)
     {
         section = &sections->array[i];
-        if (strcmp(section->name, name) == 0)
+        if (stricmp(section->name, name) == 0)
         {
             break;
         }
@@ -84,7 +84,7 @@ Property* getProperty(PropertiesArray* properties, char* name)
     for(i = 0; i < properties->count; i++)
     {
         property = &properties->array[i];
-        if (strcmp(property->name, name) == 0)
+        if (stricmp(property->name, name) == 0)
         {
             break;
         }
@@ -100,19 +100,11 @@ int updateMenuListingFromDirectory(char* path, MenuListing* menuListing)
     IniData* iniData;
     Section* section;
     Property* property;
+    char hstDosIniPath3[255] = {0};
 
-    hstDosIniPath = malloc(255 * sizeof(char));
-    if (hstDosIniPath == NULL)
-    {
-        printf("\nCouldn't allocate memory\n");
-        return 0;
-    }
+    combinePath(hstDosIniPath3, path, "hstdos.ini");
 
-    combinePath(hstDosIniPath, path, "hstdos.ini");
-
-	iniData = readIniFile(hstDosIniPath);
-
-    free(hstDosIniPath);
+	iniData = readIniFile(hstDosIniPath3);
 
 	if (iniData == NULL)
 	{
@@ -126,6 +118,7 @@ int updateMenuListingFromDirectory(char* path, MenuListing* menuListing)
     if (section == NULL)
     {
         freeIniData(iniData);
+        free(iniData);
         return 0;
     }
 
@@ -139,6 +132,9 @@ int updateMenuListingFromDirectory(char* path, MenuListing* menuListing)
         titleUpdated = 1;
     }
 
+    freeIniData(iniData);
+    free(iniData);
+    
     return titleUpdated;
 }
 
@@ -150,19 +146,11 @@ int updateMenuEntryFromDirectory(char* path, MenuEntry* menuEntry)
     IniData* iniData;
     Section* section;
     Property* property;
+    char hstDosIniPath2[255] = {0};
 
-    hstDosIniPath = malloc(255 * sizeof(char));
-    if (hstDosIniPath == NULL)
-    {
-        printf("\nCouldn't allocate memory\n");
-        return 0;
-    }
+    combinePath(hstDosIniPath2, path, "hstdos.ini");
 
-    combinePath(hstDosIniPath, path, "hstdos.ini");
-
-	iniData = readIniFile(hstDosIniPath);
-
-    free(hstDosIniPath);
+	iniData = readIniFile(hstDosIniPath2);
 
 	if (iniData == NULL)
 	{
@@ -176,6 +164,7 @@ int updateMenuEntryFromDirectory(char* path, MenuEntry* menuEntry)
     if (section == NULL)
     {
         freeIniData(iniData);
+        free(iniData);
         return 0;
     }
 
@@ -200,6 +189,7 @@ int updateMenuEntryFromDirectory(char* path, MenuEntry* menuEntry)
     }
 
     freeIniData(iniData);
+    free(iniData);
 
     return commandUpdated;
 }
@@ -208,7 +198,7 @@ MenuListing* getMenuEntriesFromPath(int level, char* path)
 {
     MenuListing* menuListing;
     MenuEntry* menuEntry;
-	char entryPath[255];
+	char entryPath[255] = {0};
 	struct stat pathStat;
 	DIR *dirPointer = NULL;
 	int isDir;

@@ -31,24 +31,24 @@ typedef struct {
 Property* initIniProperty()
 {
     Property* property;
-    property = malloc(sizeof(*property));
+    property = calloc(1, sizeof(*property));
     if (property == NULL)
     {
         printf("Couldn't allocate memory\n");
-        return NULL;
+        exit(1);
     }
-    property->name = malloc(50 * sizeof(char));
+    property->name = calloc(50, sizeof(char));
     if (property->name == NULL)
     {
         printf("Couldn't allocate memory\n");
-        return NULL;
+        exit(1);
     }
     strcpy(property->name, "");
-    property->value = malloc(255 * sizeof(char));
+    property->value = calloc(255, sizeof(char));
     if (property->value == NULL)
     {
         printf("Couldn't allocate memory\n");
-        return NULL;
+        exit(1);
     }
     strcpy(property->value, "");
     return property;
@@ -57,11 +57,11 @@ Property* initIniProperty()
 PropertiesArray* initIniProperties()
 {
     PropertiesArray* properties;
-    properties = malloc(sizeof(*properties));
+    properties = calloc(1, sizeof(*properties));
     if (properties == NULL)
     {
         printf("Couldn't allocate memory\n");
-        return NULL;
+        exit(1);
     }
     properties->count = 0;
     properties->size = 10;
@@ -69,7 +69,7 @@ PropertiesArray* initIniProperties()
     if (properties->array == NULL)
     {
         printf("Couldn't allocate memory\n");
-        return NULL;
+        exit(1);
     }
     return properties;
 }
@@ -77,17 +77,17 @@ PropertiesArray* initIniProperties()
 Section* initIniSection()
 {
     Section* section;
-    section = malloc(sizeof(*section));
+    section = calloc(1, sizeof(*section));
     if (section == NULL)
     {
         printf("Couldn't allocate memory\n");
-        return NULL;
+        exit(1);
     }
-    section->name = malloc(255 * sizeof(char));
+    section->name = calloc(255, sizeof(char));
     if (section->name == NULL)
     {
         printf("Couldn't allocate memory\n");
-        return NULL;
+        exit(1);
     }
     strcpy(section->name, "");
     section->properties = initIniProperties();
@@ -97,11 +97,11 @@ Section* initIniSection()
 SectionsArray* initIniSections()
 {
     SectionsArray* sections;
-    sections = malloc(sizeof(*sections));
+    sections = calloc(1, sizeof(*sections));
     if (sections == NULL)
     {
         printf("Couldn't allocate memory\n");
-        return NULL;
+        exit(1);
     }
     sections->count = 0;
     sections->size = 10;
@@ -109,7 +109,7 @@ SectionsArray* initIniSections()
     if (sections->array == NULL)
     {
         printf("Couldn't allocate memory\n");
-        return NULL;
+        exit(1);
     }
     return sections;
 }
@@ -117,11 +117,11 @@ SectionsArray* initIniSections()
 IniData* initIniData()
 {
     IniData* iniData;
-    iniData = malloc(sizeof(*iniData));
+    iniData = calloc(1, sizeof(*iniData));
     if (iniData == NULL)
     {
         printf("Couldn't allocate memory\n");
-        return NULL;
+        exit(1);
     }
     iniData->sections = initIniSections();
     return iniData;
@@ -194,7 +194,6 @@ void freeIniProperties(PropertiesArray* properties)
         }    
         free(properties->array);
     }
-    free(properties);    
 }
 
 void freeIniSection(Section* section)
@@ -203,11 +202,12 @@ void freeIniSection(Section* section)
     {
         return;
     }
-    freeIniProperties(section->properties);
     if (section->name != NULL)
     {
         free(section->name);
     }
+    freeIniProperties(section->properties);
+    free(section->properties);
 }
 
 void freeIniSections(SectionsArray* sections)
@@ -225,7 +225,6 @@ void freeIniSections(SectionsArray* sections)
         }    
         free(sections->array);
     }
-    free(sections);
 }
 
 void freeIniData(IniData* iniData)
@@ -235,7 +234,7 @@ void freeIniData(IniData* iniData)
         return;
     }
     freeIniSections(iniData->sections);
-    free(iniData);
+    free(iniData->sections);
 }
 
 #endif
