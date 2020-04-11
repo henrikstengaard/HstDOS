@@ -92,21 +92,20 @@ Property* getProperty(PropertiesArray* properties, char* name)
     return property;
 }
 
-MenuEntry* getMenuEntryFromDir(char* path)
+int updateMenuEntryFromDirectory(char* path, MenuEntry* menuEntry)
 {
     int i;
-    char* name;
+    char* title;
     char* hstDosIniPath;
     IniData* iniData;
     Section* section;
     Property* property;
-    MenuEntry* menuEntry;
 
     hstDosIniPath = malloc(255 * sizeof(char));
     if (hstDosIniPath == NULL)
     {
-        printf("Couldn't allocate memory\n");
-        return NULL;
+        printf("\nCouldn't allocate memory\n");
+        return 0;
     }
 
     combinePath(hstDosIniPath, path, "hstdos.ini");
@@ -117,7 +116,7 @@ MenuEntry* getMenuEntryFromDir(char* path)
 
 	if (iniData == NULL)
 	{
-		return NULL;
+		return 0;
 	}
 
     // get menu section
@@ -127,116 +126,31 @@ MenuEntry* getMenuEntryFromDir(char* path)
     if (section == NULL)
     {
         freeIniData(iniData);
-        return NULL;
+        return 0;
     }
 
     // get title property
     property = getProperty(section->properties, "title");
 
-    // return null, if name property doesn't exist
-    if (property == NULL)
+    // set title, if property is set and not empty
+    if (property->value != NULL && property->value[0] != '\0')
     {
-        freeIniData(iniData);
-        return NULL;
+        strcpy(menuEntry->title, property->value);
     }
-
-    name = property->value;
 
     // get autostart property
     property = getProperty(section->properties, "autostart");
 
-    // return null, if autostart property doesn't exist
-    if (property == NULL)
+    // set autostart, if property is set and not empty
+    if (property->value != NULL && property->value[0] != '\0')
     {
-        freeIniData(iniData);
-        return NULL;
+        strcpy(menuEntry->command, property->value);
+        menuEntry->autostart = 1;        
     }
-
-    menuEntry = initMenuEntry();
-    strcpy(menuEntry->name, name);
-    strcpy(menuEntry->command, property->value);
-    menuEntry->autostart = 1;
-    menuEntry->isDir = 1;
-    menuEntry->isFile = 0;
 
     freeIniData(iniData);
 
-    return menuEntry;
-}
-
-MenuEntriesArray* buildMenu(char* path)
-{
-    int i;
-    char* entryPath;
-    char* name;
-    char* command;
-    DirEntry* dirEntry;
-    DirListing* dirListing;
-    MenuEntry* menuEntry;
-    MenuEntriesArray* menuEntries;
-
-	dirListing = getDirListing(path);
-    if (dirListing == NULL)
-    {
-        return NULL;
-    }
-
-    entryPath = malloc(255 * sizeof(char));
-    if (entryPath == NULL)
-    {
-        printf("Couldn't allocate memory\n");
-        return NULL;
-    }
-
-    menuEntries = initMenuEntries();
-
-	for(i = 0; i < dirListing->entries->count; i++)
-	{
-		dirEntry = &dirListing->entries->array[i];
-
-        // skip entry, if it's current, parent or not executable
-        if (dirEntry->isDir && isCurrentOrParent(dirEntry->name) || dirEntry->isFile && !isExecutable(dirEntry->name))
-        {
-            continue;
-        }
-
-        combinePath(entryPath, path, dirEntry->name);
-
-        if (dirEntry->isDir)
-        {
-            menuEntry = getMenuEntryFromDir(entryPath);
-
-            if (menuEntry != NULL)
-            {
-                // add menu entry to menu entries
-                addMenuEntry(menuEntries, menuEntry);                
-                continue;
-            }
-            name = dirEntry->name;
-        }
-        else
-        {
-            name = getMenuNameFromFilename(dirEntry->name);
-            command = dirEntry->name;
-        }
-
-        // create menu entry
-        menuEntry = initMenuEntry();
-        strcpy(menuEntry->name, name);
-        if (dirEntry->isFile)
-        {
-            strcpy(menuEntry->command, command);
-        }
-        menuEntry->isDir = dirEntry->isDir;
-        menuEntry->isFile = dirEntry->isFile;
-
-        // add menu entry to menu entries
-        addMenuEntry(menuEntries, menuEntry);
-	}
-
-    free(entryPath);
-
-    return menuEntries;
+    return 1;
 }
 
 MenuListing* getMenuEntriesFromPath(int level, char* path)
@@ -253,7 +167,7 @@ MenuListing* getMenuEntriesFromPath(int level, char* path)
 	// open directory
 	if(NULL == (dirPointer = opendir(path)))
 	{
-		printf("\nCannot open Input directory [%s]\n",path);
+		printf("\nCan't open directory '%s'\n",path);
 		exit(1);
 	}
 
@@ -279,8 +193,9 @@ MenuListing* getMenuEntriesFromPath(int level, char* path)
 		combinePath(entryPath, path, entryPointer->d_name);
 
 		// get entry stat
-		if(stat(entryPath, &pathStat) != 0) {
-			printf("Can't get stat\n");
+		if(stat(entryPath, &pathStat) != 0)
+        {
+			printf("Can't get stat from path '%s'\n", entryPath);
             exit(1);
 		}
 
@@ -298,10 +213,14 @@ MenuListing* getMenuEntriesFromPath(int level, char* path)
         menuEntry = &menuListing->entries->array[menuListing->entries->count - 1];
 
 		// create menu entry
-		menuEntry->isDir = isDir;
-		menuEntry->isFile = isFile;
-		strcpy(menuEntry->name, entryPointer->d_name);
-		strcpy(menuEntry->command, entryPointer->d_name);
+		menuEntry->isDir = isDir ? 1 : 0;
+		menuEntry->isFile = isFile ? 1 : 0;
+
+        strcpy(menuEntry->name, entryPointer->d_name);
+        if (!(menuEntry->isDir && updateMenuEntryFromDirectory(entryPath, menuEntry)))
+        {
+            strcpy(menuEntry->command, entryPointer->d_name);
+        }
 	}
 
 	// close directory

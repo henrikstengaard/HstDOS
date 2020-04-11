@@ -133,8 +133,16 @@ void drawCenterMenu(MenuListing* menuListing, int selected)
 			textcolor(menuTextColor);
 		}
 
-		gotoxy(getCenterX(menuEntry->name), y);
-		cprintf("%s", menuEntry->name);
+		if (menuEntry->title[0] != '\0')
+		{
+			gotoxy(getCenterX(menuEntry->title), y);
+			cprintf("%s", menuEntry->title);			
+		}
+		else
+		{
+			gotoxy(getCenterX(menuEntry->name), y);
+			cprintf("%s", menuEntry->name);			
+		}
 	}
 }
 
@@ -321,7 +329,7 @@ int main(int argc, char *argv[])
 			if (start && (menuEntry->isFile || menuEntry->autostart))
 			{
 				// write run file to start menu entry
-				writeRunFile(menuListing->path, menuEntry->command);
+				writeRunFile(menuEntry->isDir ? entryPath : menuListing->path, menuEntry->command);
 			}
 			else if (menuEntry->isDir)
 			{

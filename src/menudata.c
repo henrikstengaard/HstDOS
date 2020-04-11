@@ -4,6 +4,7 @@
 typedef struct {
     char* command;
     char* name;
+    char* title;
     int back;
     int autostart;
     int isDir;
@@ -51,13 +52,20 @@ MenuEntry* initMenuEntry()
         return NULL;
     }
     strcpy(entry->command, "");
-    entry->name = malloc(255 * sizeof(char));
+    entry->name = malloc(13 * sizeof(char));
     if (entry->name == NULL)
     {
         printf("Couldn't allocate memory\n");
         return NULL;
     }
     strcpy(entry->name, "");
+    entry->title = malloc(80 * sizeof(char));
+    if (entry->title == NULL)
+    {
+        printf("Couldn't allocate memory\n");
+        return NULL;
+    }
+    strcpy(entry->title, "");
     entry->isDir = 0;
     entry->isFile = 0;
     entry->autostart = 0;
