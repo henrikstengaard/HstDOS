@@ -1,3 +1,4 @@
 src/*.exe
 src/*.obj
 src/*.lib
+tools/_run.bat

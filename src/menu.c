@@ -92,9 +92,59 @@ Property* getProperty(PropertiesArray* properties, char* name)
     return property;
 }
 
+int updateMenuListingFromDirectory(char* path, MenuListing* menuListing)
+{
+    int titleUpdated = 0;
+    char* title;
+    char* hstDosIniPath;
+    IniData* iniData;
+    Section* section;
+    Property* property;
+
+    hstDosIniPath = malloc(255 * sizeof(char));
+    if (hstDosIniPath == NULL)
+    {
+        printf("\nCouldn't allocate memory\n");
+        return 0;
+    }
+
+    combinePath(hstDosIniPath, path, "hstdos.ini");
+
+	iniData = readIniFile(hstDosIniPath);
+
+    free(hstDosIniPath);
+
+	if (iniData == NULL)
+	{
+		return 0;
+	}
+
+    // get menu section
+    section = getSection(iniData->sections, "menu");
+
+    // return null, if menu section doesn't exist
+    if (section == NULL)
+    {
+        freeIniData(iniData);
+        return 0;
+    }
+
+    // get title property
+    property = getProperty(section->properties, "title");
+
+    // set title, if property is set and not empty
+    if (property->value != NULL && property->value[0] != '\0')
+    {
+        strcpy(menuListing->title, property->value);
+        titleUpdated = 1;
+    }
+
+    return titleUpdated;
+}
+
 int updateMenuEntryFromDirectory(char* path, MenuEntry* menuEntry)
 {
-    int i;
+    int commandUpdated = 0;
     char* title;
     char* hstDosIniPath;
     IniData* iniData;
@@ -145,12 +195,13 @@ int updateMenuEntryFromDirectory(char* path, MenuEntry* menuEntry)
     if (property->value != NULL && property->value[0] != '\0')
     {
         strcpy(menuEntry->command, property->value);
-        menuEntry->autostart = 1;        
+        menuEntry->autostart = 1;
+        commandUpdated = 1;    
     }
 
     freeIniData(iniData);
 
-    return 1;
+    return commandUpdated;
 }
 
 MenuListing* getMenuEntriesFromPath(int level, char* path)
@@ -173,7 +224,12 @@ MenuListing* getMenuEntriesFromPath(int level, char* path)
 
     // create menu listing
     menuListing = initMenuListing();
-    getBasename(menuListing->title, path);
+
+    if (!updateMenuListingFromDirectory(path, menuListing))
+    {
+        getBasename(menuListing->title, path);
+    }
+
     strcpy(menuListing->path, path);
 
     if (level >= 2)
