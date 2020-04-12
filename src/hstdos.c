@@ -15,7 +15,7 @@
 #define STATIC_SELECTION_Y = 4
 #define STATIC_SELECTION_CENTER = 15
 
-const char* DEFAULT_TITLE = "HstDOS";
+const char* DEFAULT_TITLE = "HstDOS v0.2";
 const char* LINE80 = "                                                                                \0";
 
 enum
