@@ -75,8 +75,8 @@ void drawCenterTitle(char* title)
 	
 	gotoxy(getCenterX(text), 2);
 	cprintf("%s", text);
-	gotoxy(1, 1);
-	cprintf("%u", coreleft());
+	// gotoxy(1, 1);
+	// cprintf("%u", coreleft());
 }
 
 void drawCenterMenu(MenuListing* menuListing, int selected)
