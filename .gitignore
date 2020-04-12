@@ -1,3 +1,4 @@
+.release
 src/*.exe
 src/*.obj
 src/*.lib
