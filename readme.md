@@ -4,7 +4,7 @@ Create DOS menu's fast with zero configuration of menu entries to start your fav
 
 HstDOS can read directory and file names from a given directory and make it into a menu. Selecting directories will open a submenu and selecting files will start them. Files are filtered, so only executeable (.EXE, .COM) and batch (.BAT) files are shown.
 
-![HstDOS](media/hstdos_v0.1_screenshot.png?raw=true)
+![HstDOS](media/hstdos_v0.2_screenshot.png?raw=true)
 
 # Installation
 
@@ -19,6 +19,10 @@ Use following keys in HstDOS:
 - Arrow down: Move selection down.
 - Arrow right: Open submenu, if entry is a directory.
 - Arrow left: Go back to parent menu, if submenu is opened.
+- Page up: Move selection one page up.
+- Page down: Move selection one page down.
+- Home: Move selection to first entry.
+- End: Move selection to last entry.
 - Enter: Select entry. If entry is a file or a directory with autostart, it will be started. If entry is a directory without autostart, it will be opened as a submenu.
 - Esc: Quit HstDOS.
 
