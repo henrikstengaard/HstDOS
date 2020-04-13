@@ -16,6 +16,53 @@ char* getCurrentPath()
 	return path;
 }
 
+int isCurrent(char* name)
+{
+    return name[0] == '.' && name[1] == '\0';
+}
+
+int isParent(char* name)
+{
+    return name[0] == '.' && name[1] == '.' && name[2] == '\0';
+}
+
+int isExecutable(char* name)
+{
+    int length;
+    length = strlen(name);
+    if (length < 4)
+    {
+        return 0;
+    }
+
+    if (name[length - 4] != '.')
+    {
+        return 0;
+    }
+
+    if (name[length - 3] == 'B' && name[length - 2] == 'A' && name[length - 1] == 'T')
+    {
+        return 1;
+    }
+    else if (name[length - 3] == 'C' && name[length - 2] == 'O' && name[length - 1] == 'M')
+    {
+        return 1;
+    }
+    else if (name[length - 3] == 'E' && name[length - 2] == 'X' && name[length - 1] == 'E')
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
+int isBatchFile(char* name)
+{
+    int length;
+    length = strlen(name);
+	return name[length - 3] == 'B' && name[length - 2] == 'A' && name[length - 1] == 'T';
+}
+
 void getBasename(char* destination, char* path)
 {
 	int i, count;

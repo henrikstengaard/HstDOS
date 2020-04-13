@@ -10,6 +10,9 @@
 #include "getopt.c"
 #include "menu.c"
 
+#define HSTDOS_ENTRIES_VISIBLE 20
+
+
 #define STATIC_TITLE_HEIGHT = 3
 #define STATIC_SELECTION_HEIGHT = 22
 #define STATIC_SELECTION_Y = 4
@@ -79,7 +82,7 @@ void drawCenterTitle(char* title)
 	// cprintf("%u", coreleft());
 }
 
-void drawCenterMenu(MenuListing* menuListing, int selected)
+void drawCenterMenu(MenuList *menuList, MenuLevel *level)
 {
 	int menuBackgroundColor;
 	int menuTextColor;
@@ -114,16 +117,16 @@ void drawCenterMenu(MenuListing* menuListing, int selected)
 		}
 	}
 
-	y = 5 + (selected > 10 ? 0 : 10 - selected);
-	start = selected > 10 ? selected - 10 : 0;
-	end = selected + 10 > menuListing->entries->count ? menuListing->entries->count : selected + 10;
+	y = 5 + (level->selected > 10 ? 0 : 10 - level->selected);
+	start = level->dirOffset + level->selected > 10 ? level->selected - 10 : 0;
+	end = level->dirOffset + 10 + level->selected;
 
-	for (i = start; i < end; i++, y++)
+	for (i = start; i < end && i < menuList->count; i++, y++)
 	{
-		menuEntry = &menuListing->entries->array[i];
+		menuEntry = &menuList->entries[menuList->offset + i];
 		gotoxy(1, y);
 
-		if (i == selected)
+		if (level->dirOffset + i == level->selected)
 		{
 			textbackground(selectBackgroundColor);
 			textcolor(selectTextColor);
@@ -149,10 +152,11 @@ void drawCenterMenu(MenuListing* menuListing, int selected)
 	}
 }
 
-void writeRunFile(char* path, char* command)
+void writeRunFile(char* path, MenuEntry* menuEntry)
 {
 	char drive[2];
     FILE* filePointer;
+	char* command;
 
     filePointer = fopen("C:\\_run.bat", "w");
     if (filePointer == NULL)
@@ -169,6 +173,11 @@ void writeRunFile(char* path, char* command)
 	fputs("CD ", filePointer);
 	fputs(path, filePointer);
 	fputs("\n", filePointer);
+	command = menuEntry->command[0] != '\0' ? menuEntry->command : menuEntry->name;
+	if (isBatchFile(command))
+	{
+		fputs("CALL ", filePointer);
+	}
 	fputs(command, filePointer);
 	fputs("\n", filePointer);
 
@@ -190,19 +199,20 @@ void testMem()
 
 int main(int argc, char *argv[])
 {
-	int opt;
-	// char* menuPath;
-	MenuListing* menuListing;
-	MenuEntry* menuEntry;
+	int opt, i;
 	char entryPath[255] = {0};
 	int keyCode;
-	int quit, start, enter, back;
-	MenuLevel* menuLevel;
-	MenuLevelsArray* menuLevels;
+	int read, update, quit, start, enter, back, count;
+	MenuList menuList;
+	MenuEntry menuEntry;
+	MenuNavigation navigation;
+	MenuLevel *level;
 
-	menuLevels = initMenuLevels();
-	addMenuLevel(menuLevels, initMenuLevel());
-	menuLevel = &menuLevels->array[0];
+	// clear navigation
+	clearNavigation(&navigation);
+
+	level = &navigation.levels[0];
+	level->dirOffset = 0;
 
 	// parse arguments
     while((opt = getopt(argc, argv, ":d:")) != -1)  
@@ -210,7 +220,7 @@ int main(int argc, char *argv[])
         switch(opt)  
         {  
             case 'd':
-				strcpy(menuLevel->path, optarg);
+				strncpy(level->path, optarg, HSTDOS_PATH_MAXLENGTH);
                 break;  
             case '?':
                 printf("unknown option: %c\n", optind); 
@@ -219,30 +229,39 @@ int main(int argc, char *argv[])
     }
 
 	// set menu path to current path, if menu path is not set with argument
-	if (menuLevel->path[0] == '\0')
+	if (level->path[0] == '\0')
 	{
-		strcpy(menuLevel->path, getCurrentPath());
+		strncpy(level->path, getCurrentPath(), HSTDOS_PATH_MAXLENGTH);
 	}
+
+	// clear menu
+	clearMenu(&menuList, 0, HSTDOS_ENTRIES_MAXCOUNT);
+	menuList.offset = HSTDOS_ENTRIES_MAXCOUNT / 2;
+	menuList.count = 0;
 
 	// hstDosPath = argv[0]; // needed to reference to where hstdos is executed from to load hstdos.ini with general settings
 	// hstdos.ini, style=static/list
+
+	count = getMenuEntriesFromPath(&menuList, menuList.offset, level->path, level->dirOffset, HSTDOS_ENTRIES_VISIBLE);
+	menuList.count += count;
 
 	// hide cursor
 	_setcursortype(_NOCURSOR);
 
 	do
 	{
+		read = 0;
 		quit = 0;
 		start = 0;	
 		enter = 0;
 		back = 0;
-
-		menuListing = getMenuEntriesFromPath(menuLevels->count, menuLevel->path);
+		update = 0;
 
 		textbackground(BLACK);
 		clrscr();
-		drawCenterTitle(menuListing->title);
-		drawCenterMenu(menuListing, menuLevel->selected);
+		drawCenterTitle(menuList.title);
+		drawCenterMenu(&menuList, level);
+
 		do
 		{
 			if(kbhit()){
@@ -257,19 +276,37 @@ int main(int argc, char *argv[])
 						quit = 1;
 						break;
 					case ARROW_UP_KEY:
-						if (menuListing->entries->count > 0 && menuLevel->selected > 0)
+						if (menuList.count > 0 && level->selected > 0)
 						{
-							menuLevel->selected--;
-							drawCenterMenu(menuListing, menuLevel->selected);
+							level->selected--;
+							// if (level->selected < level->dirOffset)
+							// {
+							// 	read = 1;
+							// 	level->dirOffset = level->dirOffset > HSTDOS_ENTRIES_MAXCOUNT
+							// 		? level->dirOffset - HSTDOS_ENTRIES_MAXCOUNT
+							// 		: 0;
+							// }
+							update = 1;
 						}
 						break;
 					case ARROW_DOWN_KEY:
-						if (menuListing->entries->count > 0 && menuLevel->selected < menuListing->entries->count - 1)
+						if (menuList.count > 0)
 						{
-							menuLevel->selected++;
-							drawCenterMenu(menuListing, menuLevel->selected);
+							level->selected++;
+							//read = level->selected + 10 > level->offset + menu.count;
+							if (level->selected + 10 > level->dirOffset + menuList.count)
+							{
+								read = level->selected + 10 > level->dirOffset + HSTDOS_ENTRIES_VISIBLE;
+								//menu.nextOffset = menu.offset + HSTDOS_ENTRIES_VISIBLE;
+								//level->dirNextOffset = level->dirOffset + HSTDOS_ENTRIES_VISIBLE;
+								//level->dirOffset++;
+								//read = menu.count == HSTDOS_ENTRIES_MAXCOUNT;
+								//level->offset += HSTDOS_ENTRIES_MAXCOUNT;
+							}
+							update = 1;
 						}
 						break;
+/*						
 					case PAGE_UP_KEY:
 						if (menuListing->entries->count > 0 && menuLevel->selected > 0)
 						{
@@ -278,7 +315,7 @@ int main(int argc, char *argv[])
 							{
 								menuLevel->selected = 0;
 							}
-							drawCenterMenu(menuListing, menuLevel->selected);
+							drawCenterMenu(&menu, level);
 						}
 						break;
 					case PAGE_DOWN_KEY:
@@ -289,7 +326,7 @@ int main(int argc, char *argv[])
 							{
 								menuLevel->selected = menuListing->entries->count - 1;
 							}
-							drawCenterMenu(menuListing, menuLevel->selected);
+							drawCenterMenu(&menu, level);
 						}
 						break;
 					case HOME_KEY:
@@ -313,12 +350,47 @@ int main(int argc, char *argv[])
 					case ARROW_LEFT_KEY:
 						back = menuLevels->count > 1;
 						break;
+						*/
 				}
-			}		
+			}
+
+			if (read)
+			{
+				// reorganize entries
+				// for(i = 1; i < menu.count; i++)
+				// {
+				// 	strncpy(menu.entries[i - 1].name, menu.entries[i].name, HSTDOS_NAME_MAXLENGTH); 
+				// 	strncpy(menu.entries[i - 1].title, menu.entries[i].title, HSTDOS_TITLE_MAXLENGTH); 
+				// 	strncpy(menu.entries[i - 1].command, menu.entries[i].command, HSTDOS_COMMAND_MAXLENGTH); 
+				// 	menu.entries[i - 1].flags = menu.entries[i].flags;
+				// }
+				
+				// simulate read
+				//strncpy(menu.entries[menu.count - 1].name, "READ", HSTDOS_NAME_MAXLENGTH); 
+
+				count = getMenuEntriesFromPath(&menuList, menuList.offset + menuList.count, level->path, level->dirOffset + HSTDOS_ENTRIES_VISIBLE, HSTDOS_ENTRIES_VISIBLE);
+				menuList.count += count;
+				read = 0;
+			}
+
+			if (update)
+			{
+				drawCenterMenu(&menuList, level);
+				update = 0;
+
+				gotoxy(1, 1);
+				cprintf("s = %d, do = %d, mo = %d, mc = %d, read = %d  ",
+					level->selected,
+					level->dirOffset,
+					menuList.offset,
+					menuList.count,
+					read);
+			}
 		} while(quit == 0 && enter == 0 && back == 0);
 
-		menuEntry = &menuListing->entries->array[menuLevel->selected];
-		if (menuEntry->back)
+		menuEntry = menuList.entries[menuList.offset + (level->selected - level->dirOffset)];
+
+		if (menuEntry.flags & HSTDOS_BACK_ENTRY)
 		{
 			enter = 0;
 			start = 0;
@@ -327,57 +399,53 @@ int main(int argc, char *argv[])
 
 		if (enter)
 		{
-			combinePath(entryPath, menuListing->path, menuEntry->name);
+			combinePath(entryPath, level->path, menuEntry.name);
 			
-			if (start && (menuEntry->isFile || menuEntry->autostart))
+			if (start && (menuEntry.flags & HSTDOS_FILE_ENTRY || menuEntry.flags & HSTDOS_AUTOSTART_ENTRY))
 			{
 				// write run file to start menu entry
-				writeRunFile(menuEntry->isDir ? entryPath : menuListing->path, menuEntry->command);
+				writeRunFile(menuEntry.flags & HSTDOS_DIR_ENTRY ? entryPath : level->path, &menuEntry);
 			}
-			else if (menuEntry->isDir)
+			else if (menuEntry.flags & HSTDOS_DIR_ENTRY)
 			{
 				start = 0;
 
-				// add menu level
-				addMenuLevel(menuLevels, initMenuLevel());
+				// add 
+				navigation.count++;
+				level = &navigation.levels[navigation.count];
+				level->dirOffset = 0;
+				level->menuOffset = 0;
+				level->selected = 0;
+				strncpy(level->path, entryPath, HSTDOS_PATH_MAXLENGTH);
 
-				// set menu level
-				menuLevel = &menuLevels->array[menuLevels->count - 1];
-				strcpy(menuLevel->path, entryPath);
-
-				// free
-				freeMenuListing(menuListing);
-				free(menuListing);
+				// clear
+				clearMenu(&menuList, 0, HSTDOS_ENTRIES_MAXCOUNT);
+				menuList.offset = HSTDOS_ENTRIES_MAXCOUNT / 2;
+				menuList.count = 0;
 			}
 		}
-		if (back)
-		{
+		// if (back)
+		// {
 
-			// remove menu level
-			freeMenuLevel(&menuLevels->array[menuLevels->count - 1]);
-			menuLevels->count--;
-			menuLevels->size--;
-			resizeMenuLevels(menuLevels);
+		// 	// remove menu level
+		// 	freeMenuLevel(&menuLevels->array[menuLevels->count - 1]);
+		// 	menuLevels->count--;
+		// 	menuLevels->size--;
+		// 	resizeMenuLevels(menuLevels);
 
-			// get current menu level
-			menuLevel = &menuLevels->array[menuLevels->count - 1];
+		// 	// get current menu level
+		// 	menuLevel = &menuLevels->array[menuLevels->count - 1];
 
-			// free
-			freeMenuListing(menuListing);
-			free(menuListing);
-		}
+		// 	// free
+		// 	freeMenuListing(menuListing);
+		// 	free(menuListing);
+		// }
 	} while (quit == 0 && start == 0);
 	
-	// free
-	freeMenuListing(menuListing);
-	free(menuListing);
-	freeMenuLevels(menuLevels);
-	free(menuLevels);
-
-	// print goodbye message
+	// print thanks message
 	textbackground(BLACK);
 	clrscr();
-	printf("Thanks for using HstDOS!\n\n");
+	printf("Thanks for using HstDOS!\n");
 
 	// show cursor
 	_setcursortype(_NORMALCURSOR);

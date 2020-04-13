@@ -5,43 +5,6 @@
 #include "inifile.c"
 #include "menudata.c"
 
-int isCurrentOrParent(char* name)
-{
-    int length;
-    length = strlen(name);
-    return length == 1 && name[0] == '.' || length == 2 && name[0] == '.' && name[1] == '.';
-}
-
-int isExecutable(char* name)
-{
-    int length;
-    length = strlen(name);
-    if (length < 4)
-    {
-        return 0;
-    }
-
-    if (name[length - 4] != '.')
-    {
-        return 0;
-    }
-
-    if (name[length - 3] == 'B' && name[length - 2] == 'A' && name[length - 1] == 'T')
-    {
-        return 1;
-    }
-    else if (name[length - 3] == 'C' && name[length - 2] == 'O' && name[length - 1] == 'M')
-    {
-        return 1;
-    }
-    else if (name[length - 3] == 'E' && name[length - 2] == 'X' && name[length - 1] == 'E')
-    {
-        return 1;
-    }
-
-    return 0;
-}
-
 char* getMenuNameFromFilename(char* filename)
 {
     char menuName[255];
@@ -92,7 +55,7 @@ Property* getProperty(PropertiesArray* properties, char* name)
     return property;
 }
 
-int updateMenuListingFromDirectory(char* path, MenuListing* menuListing)
+int updateMenuListingFromDirectory(char* path, MenuList* menuList)
 {
     int titleUpdated = 0;
     char* title;
@@ -128,7 +91,7 @@ int updateMenuListingFromDirectory(char* path, MenuListing* menuListing)
     // set title, if property is set and not empty
     if (property->value != NULL && property->value[0] != '\0')
     {
-        strcpy(menuListing->title, property->value);
+        strcpy(menuList->title, property->value);
         titleUpdated = 1;
     }
 
@@ -184,7 +147,7 @@ int updateMenuEntryFromDirectory(char* path, MenuEntry* menuEntry)
     if (property->value != NULL && property->value[0] != '\0')
     {
         strcpy(menuEntry->command, property->value);
-        menuEntry->autostart = 1;
+        menuEntry->flags |= HSTDOS_AUTOSTART_ENTRY;
         commandUpdated = 1;    
     }
 
@@ -194,85 +157,83 @@ int updateMenuEntryFromDirectory(char* path, MenuEntry* menuEntry)
     return commandUpdated;
 }
 
-MenuListing* getMenuEntriesFromPath(int level, char* path)
+int getMenuEntriesFromPath(MenuList *list, int menuOffset, char *path, int dirOffset, int entries)
 {
-    MenuListing* menuListing;
-    MenuEntry* menuEntry;
+    int offset, count;
+	DIR *dirPointer = NULL;
+	struct dirent *entryPointer = NULL;
 	char entryPath[255] = {0};
 	struct stat pathStat;
-	DIR *dirPointer = NULL;
-	int isDir;
-	int isFile;
-	struct dirent *entryPointer = NULL;
 
 	// open directory
 	if(NULL == (dirPointer = opendir(path)))
 	{
-		printf("\nCan't open directory '%s'\n",path);
+		printf("\nCan't open directory path '%s'\n", path);
 		exit(1);
 	}
 
-    // create menu listing
-    menuListing = initMenuListing();
-
-    if (!updateMenuListingFromDirectory(path, menuListing))
-    {
-        getBasename(menuListing->title, path);
-    }
-
-    strcpy(menuListing->path, path);
-
-    if (level >= 2)
-    {
-		// add menu entry
-		addMenuEntry(menuListing->entries, initMenuEntry());
-        menuEntry = &menuListing->entries->array[menuListing->entries->count - 1];
-
-		strcpy(menuEntry->name, "Back");
-		menuEntry->back = 1;
-    }
-
-	// Read the directory contents
-	while(NULL != (entryPointer = readdir(dirPointer)) )
+    // read directory
+    offset = 0;
+    count = 0;
+	while(NULL != (entryPointer = readdir(dirPointer)) && count < entries)
 	{
+        if (offset++ < dirOffset)
+        {
+            continue;
+        }
+
 		// combine dir and entry name
 		combinePath(entryPath, path, entryPointer->d_name);
 
 		// get entry stat
 		if(stat(entryPath, &pathStat) != 0)
         {
-			printf("Can't get stat from path '%s'\n", entryPath);
+			printf("\nCan't get stat from path '%s'\n", entryPath);
             exit(1);
 		}
 
-		isDir = pathStat.st_mode & S_IFDIR;
-		isFile = pathStat.st_mode & S_IFREG;
-
-        // skip entry, if it's current, parent or not executable
-        if (isDir && isCurrentOrParent(entryPointer->d_name) || isFile && !isExecutable(entryPointer->d_name))
+        // directory entry
+		if (pathStat.st_mode & S_IFDIR)
         {
-            continue;
+            // skip entry, if it's current directory
+            if (isCurrent(entryPointer->d_name))
+            {
+                continue;
+            }
+
+            // add directory flag
+            list->entries[menuOffset + count].flags |= HSTDOS_DIR_ENTRY;
         }
 
-		// add menu entry
-		addMenuEntry(menuListing->entries, initMenuEntry());
-        menuEntry = &menuListing->entries->array[menuListing->entries->count - 1];
-
-		// create menu entry
-		menuEntry->isDir = isDir ? 1 : 0;
-		menuEntry->isFile = isFile ? 1 : 0;
-
-        strcpy(menuEntry->name, entryPointer->d_name);
-        if (!(menuEntry->isDir && updateMenuEntryFromDirectory(entryPath, menuEntry)))
+        // file entry
+		if (pathStat.st_mode & S_IFREG)
         {
-            strcpy(menuEntry->command, entryPointer->d_name);
+            // skip entry, if it's not an executable file
+            // if (!isExecutable(entryPointer->d_name))
+            // {
+            //     continue;
+            // }
+
+            // add file flag
+            list->entries[menuOffset + count].flags |= HSTDOS_FILE_ENTRY;
         }
-	}
+
+        // set entry name
+        strncpy(list->entries[menuOffset + count].name, entryPointer->d_name, HSTDOS_NAME_MAXLENGTH);
+
+        // add back flag, if entry is parent
+        if (isParent(entryPointer->d_name))
+        {
+            list->entries[menuOffset + count].flags |= HSTDOS_BACK_ENTRY;
+        }
+
+        count++;
+    }
 
 	// close directory
 	closedir(dirPointer);
 
-	return menuListing;
+    return count;
 }
 
 #endif
