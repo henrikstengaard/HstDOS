@@ -201,7 +201,7 @@ int main(int argc, char *argv[])
 	int opt, i;
 	char entryPath[255] = {0};
 	int keyCode;
-	int readPrev, readNext, update, quit, start, enter, back, count, oneUp, pageUp, oneDown, pageDown, hasMore;
+	int readPrev, readNext, update, quit, start, enter, back, count, oneUp, pageUp, oneDown, pageDown;
 	MenuList menuList;
 	MenuEntry menuEntry;
 	MenuNavigation navigation;
@@ -244,7 +244,7 @@ int main(int argc, char *argv[])
 
 	count = getMenuEntriesFromPath(&menuList, menuList.offset, level->path, level->dirOffset, HSTDOS_ENTRIES_VISIBLE);
 	menuList.count += count;
-	hasMore = count == HSTDOS_ENTRIES_VISIBLE;
+	level->hasMore = count == HSTDOS_ENTRIES_VISIBLE;
 
 	// hide cursor
 	_setcursortype(_NOCURSOR);
@@ -359,12 +359,12 @@ int main(int argc, char *argv[])
 			{
 				level->selected += pageDown ? HSTDOS_ENTRIES_VISIBLE - 1 : 1;
 
-				if (!hasMore && level->selected >= level->dirOffset + menuList.count)
+				if (!level->hasMore && level->selected >= level->dirOffset + menuList.count)
 				{
 					level->selected = level->dirOffset + menuList.count - 1;
 				}
 
-				readNext = hasMore && level->selected > level->dirOffset + menuList.count - 10;
+				readNext = level->hasMore && level->selected > level->dirOffset + menuList.count - 10;
 				update = 1;
 				oneDown = 0;
 				pageDown = 0;
@@ -388,7 +388,7 @@ int main(int argc, char *argv[])
 					level->dirOffset + 1,
 					HSTDOS_ENTRIES_VISIBLE);
 				menuList.count += count;
-				hasMore = count == HSTDOS_ENTRIES_VISIBLE;
+				level->hasMore = count == HSTDOS_ENTRIES_VISIBLE;
 
 				if (menuList.count < HSTDOS_ENTRIES_VISIBLE * 2)
 				{
@@ -402,7 +402,7 @@ int main(int argc, char *argv[])
 					menuList.count += count;
 				
 					//
-					hasMore = (HSTDOS_ENTRIES_VISIBLE * 2) - menuList.count;
+					level->hasMore = (HSTDOS_ENTRIES_VISIBLE * 2) - menuList.count;
 				}
 			}
 
@@ -426,7 +426,7 @@ int main(int argc, char *argv[])
 				menuList.count += count;
 
 				// 
-				hasMore = count == HSTDOS_ENTRIES_VISIBLE;
+				level->hasMore = count == HSTDOS_ENTRIES_VISIBLE;
 			}
 
 			if (update)

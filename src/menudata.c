@@ -35,6 +35,7 @@ typedef struct {
     int selected;
     int menuOffset;
     int menuCount;
+    int hasMore;
 } MenuLevel;
 
 typedef struct
@@ -53,6 +54,7 @@ void clearNavigation(MenuNavigation *navigation)
         navigation->levels[i].selected = 0;
         navigation->levels[i].menuOffset = 0;
         navigation->levels[i].menuCount = 0;
+        navigation->levels[i].hasMore = 0;
     }
     navigation->count = 0;
 }
