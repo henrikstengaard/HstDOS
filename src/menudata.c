@@ -32,8 +32,9 @@ typedef struct {
 typedef struct {
     char path[HSTDOS_PATH_MAXLENGTH];
     int dirOffset;
-    int menuOffset;
     int selected;
+    int menuOffset;
+    int menuCount;
 } MenuLevel;
 
 typedef struct
@@ -48,14 +49,15 @@ void clearNavigation(MenuNavigation *navigation)
     for (i = 0; i < HSTDOS_LEVELS_MAXCOUNT; i++)
     {
         navigation->levels[i].dirOffset = 0;
-        navigation->levels[i].menuOffset = 0;
         memset(navigation->levels[i].path, 0, HSTDOS_PATH_MAXLENGTH);
         navigation->levels[i].selected = 0;
+        navigation->levels[i].menuOffset = 0;
+        navigation->levels[i].menuCount = 0;
     }
     navigation->count = 0;
 }
 
-void clearMenu(MenuList *menuList, int start, int end)
+void clearMenuList(MenuList *menuList, int start, int end)
 {
     int i;
     for (i = start; i < end && i < HSTDOS_ENTRIES_MAXCOUNT; i++)
@@ -66,6 +68,31 @@ void clearMenu(MenuList *menuList, int start, int end)
         menuList->entries[i].flags = 0;
     }
     memset(menuList->title, 0, HSTDOS_TITLE_MAXLENGTH);
+}
+
+void copyMenuEntry(MenuList *menuList, int sourceIndex, int destinationIndex)
+{
+    if (sourceIndex >= HSTDOS_ENTRIES_MAXCOUNT || destinationIndex >= HSTDOS_ENTRIES_MAXCOUNT)
+    {
+        return;
+    }
+
+    strncpy(menuList->entries[destinationIndex].name, menuList->entries[sourceIndex].name, HSTDOS_NAME_MAXLENGTH);
+    strncpy(menuList->entries[destinationIndex].title, menuList->entries[sourceIndex].title, HSTDOS_TITLE_MAXLENGTH);
+    strncpy(menuList->entries[destinationIndex].command, menuList->entries[sourceIndex].command, HSTDOS_COMMAND_MAXLENGTH);
+    menuList->entries[destinationIndex].flags = menuList->entries[sourceIndex].flags;
+}
+
+void copyMenuList(MenuList *menuList, int sourceIndex, int destinationIndex, int count, char reverse)
+{
+    int i;
+    for (i = 0; i < count; i++)
+    {
+        copyMenuEntry(
+            menuList,
+            reverse ? sourceIndex + count - 1 - i : sourceIndex + i,
+            reverse ? destinationIndex + count - 1 - i : destinationIndex + i);
+    }
 }
 
 #endif
