@@ -488,7 +488,7 @@ int main(int argc, char *argv[])
 				// write run file to start menu entry
 				writeRunFile(menuEntry.flags & HSTDOS_DIR_ENTRY ? entryPath : level->path, &menuEntry);
 			}
-			else if (menuEntry.flags & HSTDOS_DIR_ENTRY)
+			else if (menuEntry.flags & HSTDOS_DIR_ENTRY && navigation.count < HSTDOS_LEVELS_MAXCOUNT)
 			{
 				// remove start flag
 				input.navigationFlags &= ~HSTDOS_NAVIGATE_START;
