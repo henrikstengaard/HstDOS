@@ -10,6 +10,7 @@
 #include "getopt.c"
 #include "menu.c"
 #include "input.c"
+#include "delay.h"
 
 #define HSTDOS_ENTRIES_VISIBLE 20
 
@@ -126,6 +127,16 @@ void drawCenterMenu(MenuList *menuList, MenuLevel *level)
 			cprintf("%s", menuEntry->name);			
 		}
 	}
+}
+
+char navigateReadPrev(MenuLevel *level)
+{
+	return level->dirOffset > 0 && level->selected < level->dirOffset + 10;
+}
+
+char navigateReadNext(MenuList *menuList, MenuLevel *level)
+{
+	return level->hasMore && level->selected > level->dirOffset + menuList->count - 10;
 }
 
 void writeRunFile(char* path, MenuEntry* menuEntry)
@@ -315,6 +326,18 @@ int main(int argc, char *argv[])
 				if (level->selected + i >= 0 && level->selected + i < level->dirOffset + menuList.count - 1)
 				{
 					level->selected += i;
+
+					if (i < 0)
+					{
+						readPrev = navigateReadPrev(level);
+
+					}
+					else if (i > 0)
+					{
+						readNext = navigateReadNext(&menuList, level);
+						
+					}
+					update = 1;					
 				}
 				else
 				{
@@ -332,7 +355,7 @@ int main(int argc, char *argv[])
 					level->selected = 0;
 				}
 
-				readPrev = level->dirOffset > 0 && level->selected < level->dirOffset + 10;
+				readPrev = navigateReadPrev(level);
 				update = 1;
 			}
 
@@ -345,7 +368,7 @@ int main(int argc, char *argv[])
 					level->selected = level->dirOffset + menuList.count - 1;
 				}
 
-				readNext = level->hasMore && level->selected > level->dirOffset + menuList.count - 10;
+				readNext = navigateReadNext(&menuList, level);
 				update = 1;
 			}
 
@@ -439,6 +462,12 @@ int main(int argc, char *argv[])
 				}
 			}
 		} while((input.navigationFlags & (HSTDOS_NAVIGATE_QUIT | HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_BACK)) == 0);
+
+		// navigate enter and back delay
+		if ((input.navigationFlags & (HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_BACK)) == 0)
+		{
+			MilliDelay(200);
+		}
 
 		menuEntry = menuList.entries[menuList.offset + (level->selected - level->dirOffset)];
 
