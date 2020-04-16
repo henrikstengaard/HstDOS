@@ -9,6 +9,7 @@
 #include <alloc.h>
 #include "getopt.c"
 #include "menu.c"
+#include "input.c"
 
 #define HSTDOS_ENTRIES_VISIBLE 20
 
@@ -19,48 +20,6 @@
 
 const char* DEFAULT_TITLE = "HstDOS v0.2";
 const char* LINE80 = "                                                                                \0";
-
-enum NavigationFlags {
-	HSTDOS_NAVIGATE_ONEUP = 1,
-	HSTDOS_NAVIGATE_ONEDOWN = 2,
-	HSTDOS_NAVIGATE_PAGEDOWN = 4,
-    HSTDOS_NAVIGATE_PAGEUP = 8,
-    HSTDOS_NAVIGATE_FIRST = 16,
-    HSTDOS_NAVIGATE_LAST = 32,
-	HSTDOS_NAVIGATE_ENTER = 64,
-	HSTDOS_NAVIGATE_BACK = 128,
-	HSTDOS_NAVIGATE_START = 256,
-	HSTDOS_NAVIGATE_QUIT = 512
-};
-
-enum
-{
-	BACKSPACE_KEY	= 8,
-    ENTER_KEY		= 13,
-    ESC_KEY			= 27,
-    HOME_KEY		= 256 + 71,
-    ARROW_UP_KEY	= 256 + 72,
-    PAGE_UP_KEY		= 256 + 73,
-    ARROW_LEFT_KEY	= 256 + 75,
-    ARROW_RIGHT_KEY	= 256 + 77,
-    END_KEY			= 256 + 79,
-    ARROW_DOWN_KEY	= 256 + 80,
-    PAGE_DOWN_KEY	= 256 + 81,
-    DELETE_KEY		= 256 + 83,
-    F11_KEY			= 256 + 133
-};
-
-			// home == 327
-			// f11 = 389
-
-
-int getKeyCode(void)
-{
-    int ch = getch();
-    if (ch == 0 || ch == 224)
-        ch = 256 + getch();
-    return ch;
-}
 
 int getCenterX(char* text)
 {
@@ -220,11 +179,21 @@ int main(int argc, char *argv[])
 	char entryPath[255] = {0};
 	int keyCode;
 	int readPrev, readNext, update, count, showDebug;
-	enum NavigationFlags navigationFlags;
+	//enum NavigationFlags navigationFlags;
+	Input input;
 	MenuList menuList;
 	MenuEntry menuEntry;
 	MenuNavigation navigation;
 	MenuLevel *level;
+
+	// initialize input
+	initInput(&input);
+
+	// show mouse, if mouse is detected
+    if (input.hasMouse)
+    {
+        ShowMouse();
+    }
 
 	// clear navigation
 	clearNavigation(&navigation);
@@ -273,6 +242,8 @@ int main(int argc, char *argv[])
 	// set level has more entries, if entries read is equal to visible entries
 	level->hasMore = count == HSTDOS_ENTRIES_VISIBLE;
 
+	showDebug = 0;
+
 	// hide cursor
 	_setcursortype(_NOCURSOR);
 
@@ -288,55 +259,26 @@ int main(int argc, char *argv[])
 			readPrev = 0;
 			readNext = 0;
 			update = 0;
-			showDebug = 0;
 
-			navigationFlags = 0;
+			input.navigationFlags = 0;
 
 			if(kbhit()){
-				keyCode = getKeyCode();
-				switch (keyCode)
+				getKeyboardInput(&input);
+				if (input.keyCode == F11_KEY)
 				{
-					case ENTER_KEY:
-						navigationFlags |= HSTDOS_NAVIGATE_START;
-						navigationFlags |= HSTDOS_NAVIGATE_ENTER;
-						break;
-					case ESC_KEY:
-						navigationFlags |= HSTDOS_NAVIGATE_QUIT;
-						break;
-					case ARROW_UP_KEY:
-						navigationFlags |= HSTDOS_NAVIGATE_ONEUP;
-						break;
-					case ARROW_DOWN_KEY:
-						navigationFlags |= HSTDOS_NAVIGATE_ONEDOWN;
-						break;
-					case PAGE_UP_KEY:
-						navigationFlags |= HSTDOS_NAVIGATE_PAGEUP;
-						break;
-					case PAGE_DOWN_KEY:
-						navigationFlags |= HSTDOS_NAVIGATE_PAGEDOWN;
-						break;
-					case HOME_KEY:
-						navigationFlags |= HSTDOS_NAVIGATE_FIRST;
-						break;
-					case END_KEY:
-						navigationFlags |= HSTDOS_NAVIGATE_LAST;
-						break;
-					case ARROW_RIGHT_KEY:
-						navigationFlags |= HSTDOS_NAVIGATE_ENTER;
-						break;
-					case BACKSPACE_KEY:
-					case ARROW_LEFT_KEY:
-						navigationFlags |= HSTDOS_NAVIGATE_BACK;
-						break;
-					case F11_KEY:
-						showDebug = 1;
-						break;
+					showDebug = showDebug ? 0 : 1;
 				}
+
 			}
 
-			if ((navigationFlags & (HSTDOS_NAVIGATE_ONEUP | HSTDOS_NAVIGATE_PAGEUP)) && menuList.count > 0)
+			if (input.hasMouse)
 			{
-				level->selected -= navigationFlags & HSTDOS_NAVIGATE_PAGEUP ? HSTDOS_ENTRIES_VISIBLE - 1 : 1;
+				getMouseInput(&input);
+			}
+
+			if ((input.navigationFlags & (HSTDOS_NAVIGATE_ONEUP | HSTDOS_NAVIGATE_PAGEUP)) && menuList.count > 0)
+			{
+				level->selected -= input.navigationFlags & HSTDOS_NAVIGATE_PAGEUP ? HSTDOS_ENTRIES_VISIBLE - 1 : 1;
 
 				if (level->selected < 0)
 				{
@@ -347,9 +289,9 @@ int main(int argc, char *argv[])
 				update = 1;
 			}
 
-			if ((navigationFlags & (HSTDOS_NAVIGATE_ONEDOWN | HSTDOS_NAVIGATE_PAGEDOWN)) && menuList.count > 0)
+			if ((input.navigationFlags & (HSTDOS_NAVIGATE_ONEDOWN | HSTDOS_NAVIGATE_PAGEDOWN)) && menuList.count > 0)
 			{
-				level->selected += navigationFlags & HSTDOS_NAVIGATE_PAGEDOWN ? HSTDOS_ENTRIES_VISIBLE - 1 : 1;
+				level->selected += input.navigationFlags & HSTDOS_NAVIGATE_PAGEDOWN ? HSTDOS_ENTRIES_VISIBLE - 1 : 1;
 
 				if (!level->hasMore && level->selected >= level->dirOffset + menuList.count)
 				{
@@ -432,32 +374,40 @@ int main(int argc, char *argv[])
 			{
 				textbackground(RED);
 				textcolor(WHITE);
-				gotoxy(1, 5);
-				cprintf("DEBUG: s = %d, do = %d, mo = %d, mc = %d, rp = %d, rn = %d ",
+				gotoxy(1, 4);
+				cprintf("DEBUG: s = %d, do = %d, mo = %d, mc = %d, rp = %d, rn = %d",
 					level->selected,
 					level->dirOffset,
 					menuList.offset,
 					menuList.count,
 					readPrev,
 					readNext);
+				if (input.hasMouse)
+				{
+					gotoxy(1, 5);
+					cprintf("mx = %d, my = %d, mb = %d   ",
+						input.mouseX,
+						input.mouseY,
+						input.mouseButton);
+				}
 			}
-		} while((navigationFlags & (HSTDOS_NAVIGATE_QUIT | HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_BACK)) == 0);
+		} while((input.navigationFlags & (HSTDOS_NAVIGATE_QUIT | HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_BACK)) == 0);
 
 		menuEntry = menuList.entries[menuList.offset + (level->selected - level->dirOffset)];
 
 		if (menuEntry.flags & HSTDOS_BACK_ENTRY)
 		{
 			// add back flag
-			navigationFlags |= HSTDOS_NAVIGATE_BACK;
+			input.navigationFlags |= HSTDOS_NAVIGATE_BACK;
 			// remove enter and start flags
-			navigationFlags &= ~(HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_START);
+			input.navigationFlags &= ~(HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_START);
 		}
 
-		if (navigationFlags & HSTDOS_NAVIGATE_ENTER)
+		if (input.navigationFlags & HSTDOS_NAVIGATE_ENTER)
 		{
 			combinePath(entryPath, level->path, menuEntry.name);
 			
-			if (navigationFlags & HSTDOS_NAVIGATE_START && menuEntry.flags & (HSTDOS_FILE_ENTRY | HSTDOS_AUTOSTART_ENTRY))
+			if (input.navigationFlags & HSTDOS_NAVIGATE_START && menuEntry.flags & (HSTDOS_FILE_ENTRY | HSTDOS_AUTOSTART_ENTRY))
 			{
 				// write run file to start menu entry
 				writeRunFile(menuEntry.flags & HSTDOS_DIR_ENTRY ? entryPath : level->path, &menuEntry);
@@ -465,7 +415,7 @@ int main(int argc, char *argv[])
 			else if (menuEntry.flags & HSTDOS_DIR_ENTRY)
 			{
 				// remove start flag
-				navigationFlags &= ~HSTDOS_NAVIGATE_START;
+				input.navigationFlags &= ~HSTDOS_NAVIGATE_START;
 
 				// backup menu list offset and count
 				level->menuOffset = menuList.offset;
@@ -501,7 +451,7 @@ int main(int argc, char *argv[])
 				level->hasMore = count == HSTDOS_ENTRIES_VISIBLE;
 			}
 		}
-		if (navigationFlags & HSTDOS_NAVIGATE_BACK)
+		if (input.navigationFlags & HSTDOS_NAVIGATE_BACK)
 		{
 			if (navigation.count > 1)
 			{
@@ -525,8 +475,14 @@ int main(int argc, char *argv[])
 					navigation.count <= 1);
 			}
 		}
-	} while ((navigationFlags & (HSTDOS_NAVIGATE_QUIT | HSTDOS_NAVIGATE_START)) == 0);
-	
+	} while ((input.navigationFlags & (HSTDOS_NAVIGATE_QUIT | HSTDOS_NAVIGATE_START)) == 0);
+
+	// hide mouse, if mouse is detected
+    if (input.hasMouse)
+    {
+        HideMouse();
+    }
+
 	// print thanks message
 	textbackground(BLACK);
 	textcolor(LIGHTGRAY);
@@ -537,7 +493,7 @@ int main(int argc, char *argv[])
 	_setcursortype(_NORMALCURSOR);
 
 	// return error code 0 to indicate hstdos wants to start entry using run file
-	if (navigationFlags & HSTDOS_NAVIGATE_START)
+	if (input.navigationFlags & HSTDOS_NAVIGATE_START)
 	{
 		return 0;
 	}
