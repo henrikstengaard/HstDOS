@@ -13,7 +13,8 @@ enum NavigationFlags {
 	HSTDOS_NAVIGATE_ENTER = 64,
 	HSTDOS_NAVIGATE_BACK = 128,
 	HSTDOS_NAVIGATE_START = 256,
-	HSTDOS_NAVIGATE_QUIT = 512
+	HSTDOS_NAVIGATE_QUIT = 512,
+    HSTDOS_NAVIGATE_GOTO = 1024
 };
 
 enum
@@ -37,9 +38,11 @@ typedef struct {
     enum NavigationFlags navigationFlags;
     int keyCode;
     char hasMouse;
-    int mouseX;
-    int mouseY;
-    int mouseButton;
+    int mouseXRaw;
+    int mouseYRaw;
+    char mouseXConsole;
+    char mouseYConsole;
+    char mouseButton;
 } Input;
 
 void initInput(Input *input)
@@ -47,8 +50,10 @@ void initInput(Input *input)
     input->hasMouse = IfMouse();
     input->navigationFlags = 0;
     input->keyCode = 0;
-    input->mouseX = 0;
-    input->mouseY = 0;
+    input->mouseXRaw = 0;
+    input->mouseYRaw = 0;
+    input->mouseXConsole = 0;
+    input->mouseYConsole = 0;
     input->mouseButton = 0;
 }
 
@@ -71,9 +76,11 @@ char getMouseInput(Input *input)
 
     ReadMouse();
 
-    updated = input->mouseX != MouseX || input->mouseY != MouseY || input->mouseButton != MouseB;
-    input->mouseX = MouseX;
-    input->mouseY = MouseY;
+    updated = input->mouseXRaw != MouseX || input->mouseYRaw != MouseY || input->mouseButton != MouseB;
+    input->mouseXRaw = MouseX;
+    input->mouseYRaw = MouseY;
+    input->mouseXConsole = 1 + (MouseX / 8);
+    input->mouseYConsole = 1 + (MouseY / 8);
     input->mouseButton = MouseB;
 
     return updated;
@@ -115,9 +122,6 @@ void getKeyboardInput(Input *input)
         case BACKSPACE_KEY:
         case ARROW_LEFT_KEY:
             input->navigationFlags |= HSTDOS_NAVIGATE_BACK;
-            break;
-        case F11_KEY:
-            //showDebug = 1;
             break;
     }
 }

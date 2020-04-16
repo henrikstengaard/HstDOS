@@ -264,6 +264,7 @@ int main(int argc, char *argv[])
 
 			if(kbhit()){
 				getKeyboardInput(&input);
+
 				if (input.keyCode == F11_KEY)
 				{
 					showDebug = showDebug ? 0 : 1;
@@ -273,7 +274,53 @@ int main(int argc, char *argv[])
 
 			if (input.hasMouse)
 			{
-				getMouseInput(&input);
+				if (getMouseInput(&input))
+				{
+					// remove navigation flags
+					input.navigationFlags &= ~(
+						HSTDOS_NAVIGATE_PAGEUP |
+						HSTDOS_NAVIGATE_PAGEDOWN |
+						HSTDOS_NAVIGATE_ENTER |
+						HSTDOS_NAVIGATE_START |
+						HSTDOS_NAVIGATE_GOTO |
+						HSTDOS_NAVIGATE_BACK);
+
+					if (input.mouseYConsole == 4 && input.mouseButton & 1)
+					{
+						// navigate pageup
+						input.navigationFlags |= HSTDOS_NAVIGATE_PAGEUP;
+					}
+					else if (input.mouseYConsole >= 5 && input.mouseYConsole <= 24 && input.mouseButton & 1)
+					{
+						// goto and enter/start menu entry
+						input.navigationFlags |= (HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_START | HSTDOS_NAVIGATE_GOTO);
+					}
+					else if (input.mouseYConsole == 25 && input.mouseButton & 1)
+					{
+						// navigate pagedown
+						input.navigationFlags |= HSTDOS_NAVIGATE_PAGEDOWN;
+					}
+					else if (input.mouseButton & 2)
+					{
+						input.navigationFlags |= HSTDOS_NAVIGATE_BACK;
+					}					
+				}
+				
+			}
+
+			if (input.navigationFlags & HSTDOS_NAVIGATE_GOTO)
+			{
+				i = input.mouseYConsole - 15;
+
+				if (level->selected + i >= 0 && level->selected + i < level->dirOffset + menuList.count - 1)
+				{
+					level->selected += i;
+				}
+				else
+				{
+					// remove enter and start flags
+					input.navigationFlags &= ~(HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_START);
+				}
 			}
 
 			if ((input.navigationFlags & (HSTDOS_NAVIGATE_ONEUP | HSTDOS_NAVIGATE_PAGEUP)) && menuList.count > 0)
@@ -293,7 +340,7 @@ int main(int argc, char *argv[])
 			{
 				level->selected += input.navigationFlags & HSTDOS_NAVIGATE_PAGEDOWN ? HSTDOS_ENTRIES_VISIBLE - 1 : 1;
 
-				if (!level->hasMore && level->selected >= level->dirOffset + menuList.count)
+				if (!level->hasMore && level->selected >= level->dirOffset + menuList.count - 1)
 				{
 					level->selected = level->dirOffset + menuList.count - 1;
 				}
@@ -375,7 +422,7 @@ int main(int argc, char *argv[])
 				textbackground(RED);
 				textcolor(WHITE);
 				gotoxy(1, 4);
-				cprintf("DEBUG: s = %d, do = %d, mo = %d, mc = %d, rp = %d, rn = %d",
+				cprintf("DEBUG: s = %d, do = %d, mo = %d, mc = %d, rp = %d, rn = %d   ",
 					level->selected,
 					level->dirOffset,
 					menuList.offset,
@@ -386,8 +433,8 @@ int main(int argc, char *argv[])
 				{
 					gotoxy(1, 5);
 					cprintf("mx = %d, my = %d, mb = %d   ",
-						input.mouseX,
-						input.mouseY,
+						input.mouseXConsole,
+						input.mouseYConsole,
 						input.mouseButton);
 				}
 			}
@@ -436,6 +483,12 @@ int main(int argc, char *argv[])
 				clearMenuList(&menuList, 0, HSTDOS_ENTRIES_MAXCOUNT);
 				menuList.offset = 0;
 				menuList.count = 0;
+				
+				// set menu title to entry title or name
+				strncpy(
+					menuList.title,
+					menuEntry.title[0] != '\0' ? menuEntry.title : menuEntry.name,
+					HSTDOS_TITLE_MAXLENGTH);
 
 				// read menu list entries for level
 				count = getMenuEntriesFromPath(
