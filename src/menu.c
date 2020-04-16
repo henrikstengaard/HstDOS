@@ -157,7 +157,7 @@ int updateMenuEntryFromDirectory(char* path, MenuEntry* menuEntry)
     return commandUpdated;
 }
 
-int getMenuEntriesFromPath(MenuList *list, int menuOffset, char *path, int dirOffset, int entries)
+int getMenuEntriesFromPath(MenuList *list, int menuOffset, char *path, int dirOffset, int entries, int skipParent)
 {
     int offset, count;
 	DIR *dirPointer = NULL;
@@ -196,7 +196,7 @@ int getMenuEntriesFromPath(MenuList *list, int menuOffset, char *path, int dirOf
 		if (pathStat.st_mode & S_IFDIR)
         {
             // skip entry, if it's current directory
-            if (isCurrent(entryPointer->d_name))
+            if (isCurrent(entryPointer->d_name) || (isParent(entryPointer->d_name) && skipParent))
             {
                 continue;
             }

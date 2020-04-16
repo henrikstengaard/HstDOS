@@ -20,6 +20,19 @@
 const char* DEFAULT_TITLE = "HstDOS v0.2";
 const char* LINE80 = "                                                                                \0";
 
+enum NavigationFlags {
+	HSTDOS_NAVIGATE_ONEUP = 1,
+	HSTDOS_NAVIGATE_ONEDOWN = 2,
+	HSTDOS_NAVIGATE_PAGEDOWN = 4,
+    HSTDOS_NAVIGATE_PAGEUP = 8,
+    HSTDOS_NAVIGATE_FIRST = 16,
+    HSTDOS_NAVIGATE_LAST = 32,
+	HSTDOS_NAVIGATE_ENTER = 64,
+	HSTDOS_NAVIGATE_BACK = 128,
+	HSTDOS_NAVIGATE_START = 256,
+	HSTDOS_NAVIGATE_QUIT = 512
+};
+
 enum
 {
 	BACKSPACE_KEY	= 8,
@@ -33,8 +46,13 @@ enum
     END_KEY			= 256 + 79,
     ARROW_DOWN_KEY	= 256 + 80,
     PAGE_DOWN_KEY	= 256 + 81,
-    DELETE_KEY		= 256 + 83
+    DELETE_KEY		= 256 + 83,
+    F11_KEY			= 256 + 133
 };
+
+			// home == 327
+			// f11 = 389
+
 
 int getKeyCode(void)
 {
@@ -201,7 +219,8 @@ int main(int argc, char *argv[])
 	int opt, i;
 	char entryPath[255] = {0};
 	int keyCode;
-	int readPrev, readNext, update, quit, start, enter, back, count, oneUp, pageUp, oneDown, pageDown;
+	int readPrev, readNext, update, count, showDebug;
+	enum NavigationFlags navigationFlags;
 	MenuList menuList;
 	MenuEntry menuEntry;
 	MenuNavigation navigation;
@@ -242,8 +261,16 @@ int main(int argc, char *argv[])
 	// hstDosPath = argv[0]; // needed to reference to where hstdos is executed from to load hstdos.ini with general settings
 	// hstdos.ini, style=static/list
 
-	count = getMenuEntriesFromPath(&menuList, menuList.offset, level->path, level->dirOffset, HSTDOS_ENTRIES_VISIBLE);
+	count = getMenuEntriesFromPath(
+		&menuList,
+		menuList.offset,
+		level->path,
+		level->dirOffset,
+		HSTDOS_ENTRIES_VISIBLE,
+		navigation.count <= 1);
 	menuList.count += count;
+
+	// set level has more entries, if entries read is equal to visible entries
 	level->hasMore = count == HSTDOS_ENTRIES_VISIBLE;
 
 	// hide cursor
@@ -251,19 +278,6 @@ int main(int argc, char *argv[])
 
 	do
 	{
-		readPrev = 0;
-		readNext = 0;
-		quit = 0;
-		start = 0;	
-		enter = 0;
-		back = 0;
-		update = 0;
-
-		oneUp = 0;
-		pageUp = 0;
-		oneDown = 0;
-		pageDown = 0;
-
 		textbackground(BLACK);
 		clrscr();
 		drawCenterTitle(menuList.title);
@@ -271,78 +285,58 @@ int main(int argc, char *argv[])
 
 		do
 		{
+			readPrev = 0;
+			readNext = 0;
+			update = 0;
+			showDebug = 0;
+
+			navigationFlags = 0;
+
 			if(kbhit()){
 				keyCode = getKeyCode();
 				switch (keyCode)
 				{
 					case ENTER_KEY:
-						start = 1;
-						enter = 1;
+						navigationFlags |= HSTDOS_NAVIGATE_START;
+						navigationFlags |= HSTDOS_NAVIGATE_ENTER;
 						break;
 					case ESC_KEY:
-						quit = 1;
+						navigationFlags |= HSTDOS_NAVIGATE_QUIT;
 						break;
 					case ARROW_UP_KEY:
-						oneUp = 1;
+						navigationFlags |= HSTDOS_NAVIGATE_ONEUP;
 						break;
 					case ARROW_DOWN_KEY:
-						oneDown = 1;
+						navigationFlags |= HSTDOS_NAVIGATE_ONEDOWN;
 						break;
 					case PAGE_UP_KEY:
-						pageUp = 1;
-/*						
-						if (menuListing->entries->count > 0 && menuLevel->selected > 0)
-						{
-							menuLevel->selected = menuLevel->selected - 18;
-							if (menuLevel->selected < 0)
-							{
-								menuLevel->selected = 0;
-							}
-							drawCenterMenu(&menu, level);
-						}
-						*/
+						navigationFlags |= HSTDOS_NAVIGATE_PAGEUP;
 						break;
 					case PAGE_DOWN_KEY:
-						pageDown = 1;
-						/*
-						if (menuListing->entries->count > 0 && menuLevel->selected < menuListing->entries->count - 1)
-						{
-							menuLevel->selected = menuLevel->selected + 18;
-							if (menuLevel->selected >= menuListing->entries->count)
-							{
-								menuLevel->selected = menuListing->entries->count - 1;
-							}
-							drawCenterMenu(&menu, level);
-						}
-						*/
+						navigationFlags |= HSTDOS_NAVIGATE_PAGEDOWN;
 						break;
 					case HOME_KEY:
-						// if (menuListing->entries->count > 0 && menuLevel->selected > 0)
-						// {
-						// 	menuLevel->selected = 0;
-						// 	drawCenterMenu(menuListing, menuLevel->selected);
-						// }
+						navigationFlags |= HSTDOS_NAVIGATE_FIRST;
 						break;
 					case END_KEY:
-						// if (menuListing->entries->count > 0 && menuLevel->selected < menuListing->entries->count - 1)
-						// {
-						// 	menuLevel->selected = menuListing->entries->count - 1;
-						// 	drawCenterMenu(menuListing, menuLevel->selected);
-						// }
+						navigationFlags |= HSTDOS_NAVIGATE_LAST;
 						break;
 					case ARROW_RIGHT_KEY:
-						enter = 1;
+						navigationFlags |= HSTDOS_NAVIGATE_ENTER;
 						break;
 					case BACKSPACE_KEY:
 					case ARROW_LEFT_KEY:
-						back = 1;
+						navigationFlags |= HSTDOS_NAVIGATE_BACK;
+						break;
+					case F11_KEY:
+						showDebug = 1;
 						break;
 				}
 			}
 
-			if ((oneUp || pageUp) && menuList.count > 0)
+			if ((navigationFlags & (HSTDOS_NAVIGATE_ONEUP | HSTDOS_NAVIGATE_PAGEUP)) && menuList.count > 0)
 			{
-				level->selected -= pageUp ? HSTDOS_ENTRIES_VISIBLE - 1 : 1;
+				level->selected -= navigationFlags & HSTDOS_NAVIGATE_PAGEUP ? HSTDOS_ENTRIES_VISIBLE - 1 : 1;
 
 				if (level->selected < 0)
 				{
@@ -351,13 +345,11 @@ int main(int argc, char *argv[])
 
 				readPrev = level->dirOffset > 0 && level->selected < level->dirOffset + 10;
 				update = 1;
-				oneUp = 0;
-				pageUp = 0;
 			}
 
-			if ((oneDown || pageDown) && menuList.count > 0)
+			if ((navigationFlags & (HSTDOS_NAVIGATE_ONEDOWN | HSTDOS_NAVIGATE_PAGEDOWN)) && menuList.count > 0)
 			{
-				level->selected += pageDown ? HSTDOS_ENTRIES_VISIBLE - 1 : 1;
+				level->selected += navigationFlags & HSTDOS_NAVIGATE_PAGEDOWN ? HSTDOS_ENTRIES_VISIBLE - 1 : 1;
 
 				if (!level->hasMore && level->selected >= level->dirOffset + menuList.count)
 				{
@@ -366,15 +358,12 @@ int main(int argc, char *argv[])
 
 				readNext = level->hasMore && level->selected > level->dirOffset + menuList.count - 10;
 				update = 1;
-				oneDown = 0;
-				pageDown = 0;
 			}
 
 			if (readPrev)
 			{
 				// move up remove last entries to allow read prev 20 at beginning of menu list
 				copyMenuList(&menuList, 0, HSTDOS_ENTRIES_VISIBLE, menuList.count - HSTDOS_ENTRIES_VISIBLE, 1);
-
 
 				menuList.count -= HSTDOS_ENTRIES_VISIBLE;
 				menuList.offset = 0;
@@ -386,8 +375,11 @@ int main(int argc, char *argv[])
 					menuList.offset,
 					level->path,
 					level->dirOffset + 1,
-					HSTDOS_ENTRIES_VISIBLE);
+					HSTDOS_ENTRIES_VISIBLE,
+					navigation.count <= 1);
 				menuList.count += count;
+
+				// set level has more entries, if entries read is equal to visible entries
 				level->hasMore = count == HSTDOS_ENTRIES_VISIBLE;
 
 				if (menuList.count < HSTDOS_ENTRIES_VISIBLE * 2)
@@ -398,11 +390,12 @@ int main(int argc, char *argv[])
 						menuList.offset + menuList.count,
 						level->path,
 						level->dirOffset + menuList.count + 1,
-						(HSTDOS_ENTRIES_VISIBLE * 2) - menuList.count);
+						(HSTDOS_ENTRIES_VISIBLE * 2) - menuList.count,
+						navigation.count <= 1);
 					menuList.count += count;
 				
-					//
-					level->hasMore = (HSTDOS_ENTRIES_VISIBLE * 2) - menuList.count;
+					// set level has more entries, if entries read is equal to visible entries
+					level->hasMore = count == (HSTDOS_ENTRIES_VISIBLE * 2) - menuList.count;
 				}
 			}
 
@@ -422,20 +415,25 @@ int main(int argc, char *argv[])
 					menuList.offset + menuList.count,
 					level->path,
 					level->dirOffset + HSTDOS_ENTRIES_VISIBLE + 1,
-					HSTDOS_ENTRIES_VISIBLE);
+					HSTDOS_ENTRIES_VISIBLE,
+					navigation.count <= 1);
 				menuList.count += count;
 
-				// 
+				// set level has more entries, if entries read is equal to visible entries
 				level->hasMore = count == HSTDOS_ENTRIES_VISIBLE;
 			}
 
 			if (update)
 			{
 				drawCenterMenu(&menuList, level);
-				update = 0;
+			}
 
-				gotoxy(1, 1);
-				cprintf("s = %d, do = %d, mo = %d, mc = %d, rp = %d, rn = %d    ",
+			if (showDebug)
+			{
+				textbackground(RED);
+				textcolor(WHITE);
+				gotoxy(1, 5);
+				cprintf("DEBUG: s = %d, do = %d, mo = %d, mc = %d, rp = %d, rn = %d ",
 					level->selected,
 					level->dirOffset,
 					menuList.offset,
@@ -443,39 +441,31 @@ int main(int argc, char *argv[])
 					readPrev,
 					readNext);
 			}
-
-			if (readPrev)
-			{
-				readPrev = 0;
-			}
-
-			if (readNext)
-			{
-				readNext = 0;
-			}
-		} while(quit == 0 && enter == 0 && back == 0);
+		} while((navigationFlags & (HSTDOS_NAVIGATE_QUIT | HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_BACK)) == 0);
 
 		menuEntry = menuList.entries[menuList.offset + (level->selected - level->dirOffset)];
 
 		if (menuEntry.flags & HSTDOS_BACK_ENTRY)
 		{
-			enter = 0;
-			start = 0;
-			back = 1;
+			// add back flag
+			navigationFlags |= HSTDOS_NAVIGATE_BACK;
+			// remove enter and start flags
+			navigationFlags &= ~(HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_START);
 		}
 
-		if (enter)
+		if (navigationFlags & HSTDOS_NAVIGATE_ENTER)
 		{
 			combinePath(entryPath, level->path, menuEntry.name);
 			
-			if (start && (menuEntry.flags & HSTDOS_FILE_ENTRY || menuEntry.flags & HSTDOS_AUTOSTART_ENTRY))
+			if (navigationFlags & HSTDOS_NAVIGATE_START && menuEntry.flags & (HSTDOS_FILE_ENTRY | HSTDOS_AUTOSTART_ENTRY))
 			{
 				// write run file to start menu entry
 				writeRunFile(menuEntry.flags & HSTDOS_DIR_ENTRY ? entryPath : level->path, &menuEntry);
 			}
 			else if (menuEntry.flags & HSTDOS_DIR_ENTRY)
 			{
-				start = 0;
+				// remove start flag
+				navigationFlags &= ~HSTDOS_NAVIGATE_START;
 
 				// backup menu list offset and count
 				level->menuOffset = menuList.offset;
@@ -498,11 +488,20 @@ int main(int argc, char *argv[])
 				menuList.count = 0;
 
 				// read menu list entries for level
-				count = getMenuEntriesFromPath(&menuList, menuList.offset, level->path, level->dirOffset, HSTDOS_ENTRIES_VISIBLE);
+				count = getMenuEntriesFromPath(
+					&menuList,
+					menuList.offset,
+					level->path,
+					level->dirOffset,
+					HSTDOS_ENTRIES_VISIBLE,
+					navigation.count <= 1);
 				menuList.count += count;
+
+				// set level has more entries, if entries read is equal to visible entries
+				level->hasMore = count == HSTDOS_ENTRIES_VISIBLE;
 			}
 		}
-		if (back)
+		if (navigationFlags & HSTDOS_NAVIGATE_BACK)
 		{
 			if (navigation.count > 1)
 			{
@@ -517,37 +516,33 @@ int main(int argc, char *argv[])
 				menuList.count = level->menuCount;
 
 				// read menu list entries for level
-				getMenuEntriesFromPath(&menuList, menuList.offset, level->path, level->dirOffset, menuList.count);
+				getMenuEntriesFromPath(
+					&menuList,
+					menuList.offset,
+					level->path,
+					level->dirOffset,
+					menuList.count,
+					navigation.count <= 1);
 			}
-
-		// 	// remove menu level
-		// 	freeMenuLevel(&menuLevels->array[menuLevels->count - 1]);
-		// 	menuLevels->count--;
-		// 	menuLevels->size--;
-		// 	resizeMenuLevels(menuLevels);
-
-		// 	// get current menu level
-		// 	menuLevel = &menuLevels->array[menuLevels->count - 1];
-
-		// 	// free
-		// 	freeMenuListing(menuListing);
-		// 	free(menuListing);
 		}
-	} while (quit == 0 && start == 0);
+	} while ((navigationFlags & (HSTDOS_NAVIGATE_QUIT | HSTDOS_NAVIGATE_START)) == 0);
 	
 	// print thanks message
 	textbackground(BLACK);
+	textcolor(LIGHTGRAY);
 	clrscr();
 	printf("Thanks for using HstDOS!\n");
 
 	// show cursor
 	_setcursortype(_NORMALCURSOR);
 
-	if (start)
+	// return error code 0 to indicate hstdos wants to start entry using run file
+	if (navigationFlags & HSTDOS_NAVIGATE_START)
 	{
 		return 0;
 	}
 
+	// return error code 1 to indicate hstdos has quit
 	exit(1);
 
 	return 0;
