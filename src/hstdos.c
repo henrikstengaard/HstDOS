@@ -309,20 +309,27 @@ int main(int argc, char *argv[])
 						// navigate pageup
 						input.navigationFlags |= HSTDOS_NAVIGATE_PAGEUP;
 					}
-					else if (input.mouseYConsole >= 5 && input.mouseYConsole <= 24 && input.mouseButton & 1)
+					else if (input.mouseYConsole >= 5 && input.mouseYConsole <= 24 && input.mouseButton > 0)
 					{
-						// goto and enter/start menu entry
-						input.navigationFlags |= (HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_START | HSTDOS_NAVIGATE_GOTO);
+						// goto and enter menu entry
+						input.navigationFlags |= (HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_GOTO);
+
+						if (input.mouseButton & 1)
+						{
+							// start menu entry
+							input.navigationFlags |= HSTDOS_NAVIGATE_START;
+						}
 					}
+					else if (input.mouseYConsole >= 5 && input.mouseYConsole <= 24 && input.mouseButton & 2)
+					{
+						// goto and enter menu entry
+						input.navigationFlags |= (HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_GOTO);
+					}					
 					else if (input.mouseYConsole == 25 && input.mouseButton & 1)
 					{
 						// navigate pagedown
 						input.navigationFlags |= HSTDOS_NAVIGATE_PAGEDOWN;
 					}
-					else if (input.mouseButton & 2)
-					{
-						input.navigationFlags |= HSTDOS_NAVIGATE_BACK;
-					}					
 				}
 				
 			}
