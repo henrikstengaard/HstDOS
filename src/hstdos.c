@@ -332,18 +332,12 @@ int main(int argc, char *argv[])
 							input.navigationFlags |= HSTDOS_NAVIGATE_START;
 						}
 					}
-					// else if (input.mouseYConsole >= 5 && input.mouseYConsole <= 24 && input.mouseButton & 2)
-					// {
-					// 	// goto and enter menu entry
-					// 	input.navigationFlags |= (HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_GOTO);
-					// }					
 					else if (input.mouseYConsole == 25 && input.mouseButton & 1)
 					{
 						// navigate pagedown
 						input.navigationFlags |= HSTDOS_NAVIGATE_PAGEDOWN;
 					}
 				}
-				
 			}
 
 			if (input.navigationFlags & HSTDOS_NAVIGATE_GOTO)

@@ -25,6 +25,34 @@ char* getMenuNameFromFilename(char* filename)
     return menuName;
 }
 
+void updateMenuTitleFromDirectory(MenuList *menuList, char *path)
+{
+    int i;
+    char* title;
+    IniSection section;
+    char hstDosIniPath[255] = {0};
+
+    clearIniSection(&section);
+    strcpy(section.name, "menu");
+
+    combinePath(hstDosIniPath, path, "hstdos.ini");
+
+	if (!readSectionFromIniFile(&section, hstDosIniPath))
+    {
+        return;
+    }
+
+    for (i = 0; i < section.count; i++)
+    {
+        if (stricmp(section.properties[i].name, "title") == 0 && section.properties[i].value[0] != '\0')
+        {
+            menuList->title[0] = '\0';
+            strncat(menuList->title, section.properties[i].value, HSTDOS_INI_VALUE_MAXLENGTH);
+            break;
+        }
+    }
+}
+
 void updateMenuEntryFromDirectory(MenuEntry* menuEntry, char* path)
 {
     int i;
@@ -80,6 +108,9 @@ int readMenuEntriesFromPath(
 		printf("\nCan't open directory path '%s'\n", path);
 		exit(1);
 	}
+
+    // update menu title from hstdos.ini in path
+    updateMenuTitleFromDirectory(list, path);
 
     // read directory
     offset = 0;
