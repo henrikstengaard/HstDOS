@@ -31,6 +31,7 @@ enum
     ARROW_DOWN_KEY	= 256 + 80,
     PAGE_DOWN_KEY	= 256 + 81,
     DELETE_KEY		= 256 + 83,
+    F1_KEY			= 256 + 59,
     F11_KEY			= 256 + 133
 };
 

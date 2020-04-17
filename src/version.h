@@ -1,0 +1,7 @@
+#ifndef VERSION_H_
+#define VERSION_H_
+
+#define HSTDOS_APPLICATION_VERSION "0.4"
+#define HSTDOS_APPLICATION_DATE "2020-17-04 13:56:00"
+
+#endif

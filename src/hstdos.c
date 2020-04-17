@@ -11,6 +11,9 @@
 #include "menu.c"
 #include "input.c"
 #include "delay.h"
+#include "ui.c"
+#include "dialog.c"
+#include "version.h"
 
 #define HSTDOS_ENTRIES_VISIBLE 20
 
@@ -19,14 +22,7 @@
 #define STATIC_SELECTION_Y = 4
 #define STATIC_SELECTION_CENTER = 15
 
-const char* DEFAULT_TITLE = "HstDOS v0.2";
 const char* LINE80 = "                                                                                \0";
-
-int getCenterX(char* text)
-{
-	int length = strlen(text);
-	return (80 / 2) - (length / 2);
-}
 
 void drawCenterTitle(char* title)
 {
@@ -50,7 +46,7 @@ void drawCenterTitle(char* title)
 	}
 	else
 	{
-		strcpy(text, DEFAULT_TITLE);
+		sprintf(text, "HstDOS v%s", HSTDOS_APPLICATION_VERSION);
 	}
 	
 	gotoxy(getCenterX(text), 2);
@@ -267,6 +263,11 @@ int main(int argc, char *argv[])
 		drawCenterTitle(menuList.title);
 		drawCenterMenu(&menuList, level);
 
+		if (input.hasMouse)
+		{
+			ShowMouse();
+		}
+
 		do
 		{
 			readPrev = 0;
@@ -278,11 +279,16 @@ int main(int argc, char *argv[])
 			if(kbhit()){
 				getKeyboardInput(&input);
 
+				if (input.keyCode == F1_KEY)
+				{
+					showAbout(&input);
+					break;
+				}
+
 				if (input.keyCode == F11_KEY)
 				{
 					showDebug = showDebug ? 0 : 1;
 				}
-
 			}
 
 			if (input.hasMouse)
