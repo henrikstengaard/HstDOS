@@ -463,6 +463,11 @@ int main(int argc, char *argv[])
 						input.mouseButton);
 				}
 			}
+
+			if (update && input.hasMouse)
+			{
+				ShowMouse();
+			}
 		} while((input.navigationFlags & (HSTDOS_NAVIGATE_QUIT | HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_BACK)) == 0);
 
 		// navigate enter and back delay
