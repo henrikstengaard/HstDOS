@@ -116,7 +116,7 @@ int readMenuEntriesFromPath(MenuList *list, int menuOffset, char *path, int dirO
                 list->entries[menuOffset + count].flags |= HSTDOS_BACK_ENTRY;
 
                 // set entry title to back
-                strcpy(list->entries[menuOffset + count].title, "Back\0");
+                strcpy(list->entries[menuOffset + count].title, "Back");
             }
             else
             {
@@ -139,7 +139,8 @@ int readMenuEntriesFromPath(MenuList *list, int menuOffset, char *path, int dirO
         }
 
         // set entry name
-        strncpy(list->entries[menuOffset + count].name, entryPointer->d_name, HSTDOS_NAME_MAXLENGTH);
+        list->entries[menuOffset + count].name[0] = '\0';
+        strncat(list->entries[menuOffset + count].name, entryPointer->d_name, HSTDOS_NAME_MAXLENGTH);
 
         count++;
     }

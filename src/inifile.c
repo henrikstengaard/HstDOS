@@ -51,17 +51,17 @@ char parseIniProperty(IniProperty* property, char* line)
         return 0;
     }
 
-    strncpy(
+    property->name[0] = '\0';
+    strncat(
         property->name,
         line,
         delimiterIndex > HSTDOS_INI_NAME_MAXLENGTH ? HSTDOS_INI_NAME_MAXLENGTH : delimiterIndex);
     property->name[delimiterIndex] = '\0';
-    valueLength = strlen(line) - delimiterIndex - 1;
-    strncpy(
+    property->value[0] = '\0';
+    strncat(
         property->value,
         &line[delimiterIndex+1],
         valueLength > HSTDOS_INI_VALUE_MAXLENGTH ? HSTDOS_INI_VALUE_MAXLENGTH : valueLength);
-    property->value[valueLength] = '\0';
 
     return 1;
 }

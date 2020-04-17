@@ -80,9 +80,12 @@ void copyMenuEntry(MenuList *menuList, int sourceIndex, int destinationIndex)
         return;
     }
 
-    strncpy(menuList->entries[destinationIndex].name, menuList->entries[sourceIndex].name, HSTDOS_NAME_MAXLENGTH);
-    strncpy(menuList->entries[destinationIndex].title, menuList->entries[sourceIndex].title, HSTDOS_TITLE_MAXLENGTH);
-    strncpy(menuList->entries[destinationIndex].command, menuList->entries[sourceIndex].command, HSTDOS_COMMAND_MAXLENGTH);
+    menuList->entries[destinationIndex].name[0] = '\0';
+    strncat(menuList->entries[destinationIndex].name, menuList->entries[sourceIndex].name, HSTDOS_NAME_MAXLENGTH);
+    menuList->entries[destinationIndex].title[0] = '\0';
+    strncat(menuList->entries[destinationIndex].title, menuList->entries[sourceIndex].title, HSTDOS_TITLE_MAXLENGTH);
+    menuList->entries[destinationIndex].command[0] = '\0';
+    strncat(menuList->entries[destinationIndex].command, menuList->entries[sourceIndex].command, HSTDOS_COMMAND_MAXLENGTH);
     menuList->entries[destinationIndex].flags = menuList->entries[sourceIndex].flags;
 }
 

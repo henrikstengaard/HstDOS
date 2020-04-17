@@ -219,7 +219,8 @@ int main(int argc, char *argv[])
         switch(opt)  
         {  
             case 'd':
-				strncpy(level->path, optarg, HSTDOS_PATH_MAXLENGTH);
+				level->path[0] = '\0';
+				strncat(level->path, optarg, HSTDOS_PATH_MAXLENGTH);
                 break;  
             case '?':
                 printf("unknown option: %c\n", optind); 
@@ -230,7 +231,8 @@ int main(int argc, char *argv[])
 	// set menu path to current path, if menu path is not set with argument
 	if (level->path[0] == '\0')
 	{
-		strncpy(level->path, getCurrentPath(), HSTDOS_PATH_MAXLENGTH);
+		level->path[0] = '\0';
+		strncat(level->path, getCurrentPath(), HSTDOS_PATH_MAXLENGTH);
 	}
 
 	// clear menu
@@ -508,7 +510,9 @@ int main(int argc, char *argv[])
 				level->selected = 0;
 				level->menuOffset = 0;
 				level->menuCount = 0;
-				strncpy(level->path, entryPath, HSTDOS_PATH_MAXLENGTH);
+
+				level->path[0] = '\0';
+				strncat(level->path, entryPath, HSTDOS_PATH_MAXLENGTH);
 
 				// clear menu list
 				clearMenuList(&menuList, 0, HSTDOS_ENTRIES_MAXCOUNT);
