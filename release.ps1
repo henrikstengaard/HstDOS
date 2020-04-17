@@ -31,6 +31,33 @@ if (!(Test-Path $dosBoxExe))
     throw "DOSBox is not installed"
 }
 
+# get version
+$gitVersion=git describe --tags
+
+# get last commit date
+$gitLastCommitDate=$(git log -1 --format=%cd)
+
+# read version.h
+$versionPath = Join-Path $rootPath -ChildPath 'src\version.h'
+$versionLines = Get-Content $versionPath
+
+# update version and date
+for ($i = 0; $i -lt $versionLines.count; $i++)
+{
+    if ($versionLines[$i] -match '^#define HSTDOS_APPLICATION_VERSION ')
+    {
+        $versionLines[$i] = "#define HSTDOS_APPLICATION_VERSION ""$gitVersion"""
+    }
+
+    if ($versionLines[$i] -match '^#define HSTDOS_APPLICATION_DATE ')
+    {
+        $versionLines[$i] = "#define HSTDOS_APPLICATION_DATE ""$gitLastCommitDate"""
+    }
+}
+
+# write version.h
+Set-Content $versionPath -Value $versionLines
+
 # start dosbox
 $dosBoxArgs = "-conf dosbox.conf -c ""pause"" -c ""exit"""
 $dosBoxProcess = Start-Process $dosBoxExe -ArgumentList $dosBoxArgs -WorkingDirectory $rootPath -Wait -NoNewWindow -PassThru
@@ -51,6 +78,7 @@ mkdir -Path $menuPath | Out-Null
 
 # copy hstdos.exe, hd.bat and autoexec.hd
 Copy-Item (Join-Path $srcPath -ChildPath 'hstdos.exe') -Destination "$hstDosPath\\hstdos.exe"
+Copy-Item (Join-Path $srcPath -ChildPath 'hstdos.ini') -Destination "$hstDosPath\\hstdos.ini"
 Copy-Item (Join-Path $srcPath -ChildPath 'hd.bat') -Destination "$hstDosPath\\hd.bat"
 Copy-Item (Join-Path $srcPath -ChildPath 'autoexec.hd') -Destination "$releasePath\\autoexec.hd"
 
