@@ -25,145 +25,47 @@ char* getMenuNameFromFilename(char* filename)
     return menuName;
 }
 
-Section* getSection(SectionsArray* sections, char* name)
+void updateMenuEntryFromDirectory(MenuEntry* menuEntry, char* path)
 {
     int i;
-    Section* section;
-    for(i = 0; i < sections->count; i++)
+    char* title;
+    IniSection section;
+    char hstDosIniPath[255] = {0};
+
+    clearIniSection(&section);
+    strcpy(section.name, "menu");
+
+    combinePath(hstDosIniPath, path, "hstdos.ini");
+
+	if (!readSectionFromIniFile(&section, hstDosIniPath))
     {
-        section = &sections->array[i];
-        if (stricmp(section->name, name) == 0)
+        return;
+    }
+
+    for (i = 0; i < section.count; i++)
+    {
+        if (stricmp(section.properties[i].name, "title") == 0 && section.properties[i].value[0] != '\0')
         {
-            break;
+            menuEntry->title[0] = '\0';
+            strncat(menuEntry->title, section.properties[i].value, HSTDOS_INI_VALUE_MAXLENGTH);
+        }
+        if (stricmp(section.properties[i].name, "autostart") == 0 && section.properties[i].value[0] != '\0')
+        {
+            menuEntry->command[0] = '\0';
+            strncat(menuEntry->command, section.properties[i].value, HSTDOS_INI_VALUE_MAXLENGTH);
+            menuEntry->flags |= HSTDOS_AUTOSTART_ENTRY;
         }
     }
-    return section;
 }
 
-Property* getProperty(PropertiesArray* properties, char* name)
-{
-    int i;
-    Property* property;
-    for(i = 0; i < properties->count; i++)
-    {
-        property = &properties->array[i];
-        if (stricmp(property->name, name) == 0)
-        {
-            break;
-        }
-    }
-    return property;
-}
-
-int updateMenuListingFromDirectory(char* path, MenuList* menuList)
-{
-    int titleUpdated = 0;
-    char* title;
-    char* hstDosIniPath;
-    IniData* iniData;
-    Section* section;
-    Property* property;
-    char hstDosIniPath3[255] = {0};
-
-    combinePath(hstDosIniPath3, path, "hstdos.ini");
-
-	iniData = readIniFile(hstDosIniPath3);
-
-	if (iniData == NULL)
-	{
-		return 0;
-	}
-
-    // get menu section
-    section = getSection(iniData->sections, "menu");
-
-    // return null, if menu section doesn't exist
-    if (section == NULL)
-    {
-        freeIniData(iniData);
-        free(iniData);
-        return 0;
-    }
-
-    // get title property
-    property = getProperty(section->properties, "title");
-
-    // set title, if property is set and not empty
-    if (property->value != NULL && property->value[0] != '\0')
-    {
-        strcpy(menuList->title, property->value);
-        titleUpdated = 1;
-    }
-
-    freeIniData(iniData);
-    free(iniData);
-    
-    return titleUpdated;
-}
-
-int updateMenuEntryFromDirectory(char* path, MenuEntry* menuEntry)
-{
-    int commandUpdated = 0;
-    char* title;
-    char* hstDosIniPath;
-    IniData* iniData;
-    Section* section;
-    Property* property;
-    char hstDosIniPath2[255] = {0};
-
-    combinePath(hstDosIniPath2, path, "hstdos.ini");
-
-	iniData = readIniFile(hstDosIniPath2);
-
-	if (iniData == NULL)
-	{
-		return 0;
-	}
-
-    // get menu section
-    section = getSection(iniData->sections, "menu");
-
-    // return null, if menu section doesn't exist
-    if (section == NULL)
-    {
-        freeIniData(iniData);
-        free(iniData);
-        return 0;
-    }
-
-    // get title property
-    property = getProperty(section->properties, "title");
-
-    // set title, if property is set and not empty
-    if (property->value != NULL && property->value[0] != '\0')
-    {
-        strcpy(menuEntry->title, property->value);
-    }
-
-    // get autostart property
-    property = getProperty(section->properties, "autostart");
-
-    // set autostart, if property is set and not empty
-    if (property->value != NULL && property->value[0] != '\0')
-    {
-        strcpy(menuEntry->command, property->value);
-        menuEntry->flags |= HSTDOS_AUTOSTART_ENTRY;
-        commandUpdated = 1;    
-    }
-
-    freeIniData(iniData);
-    free(iniData);
-
-    return commandUpdated;
-}
-
-int getMenuEntriesFromPath(MenuList *list, int menuOffset, char *path, int dirOffset, int entries, int skipParent)
+int readMenuEntriesFromPath(MenuList *list, int menuOffset, char *path, int dirOffset, int entries, int skipParent)
 {
     int offset, count;
 	DIR *dirPointer = NULL;
 	struct dirent *entryPointer = NULL;
 	char entryPath[255] = {0};
 	struct stat pathStat;
+    char parentEntry;
 
 	// open directory
 	if(NULL == (dirPointer = opendir(path)))
@@ -182,6 +84,8 @@ int getMenuEntriesFromPath(MenuList *list, int menuOffset, char *path, int dirOf
             continue;
         }
 
+        parentEntry = 0;
+
 		// combine dir and entry name
 		combinePath(entryPath, path, entryPointer->d_name);
 
@@ -195,37 +99,47 @@ int getMenuEntriesFromPath(MenuList *list, int menuOffset, char *path, int dirOf
         // directory entry
 		if (pathStat.st_mode & S_IFDIR)
         {
+            parentEntry = isParent(entryPointer->d_name);
+
             // skip entry, if it's current directory
-            if (isCurrent(entryPointer->d_name) || (isParent(entryPointer->d_name) && skipParent))
+            if (isCurrent(entryPointer->d_name) || (parentEntry && skipParent))
             {
                 continue;
             }
 
             // add directory flag
             list->entries[menuOffset + count].flags |= HSTDOS_DIR_ENTRY;
+
+            if (parentEntry)
+            {
+                // add back flag
+                list->entries[menuOffset + count].flags |= HSTDOS_BACK_ENTRY;
+
+                // set entry title to back
+                strcpy(list->entries[menuOffset + count].title, "Back\0");
+            }
+            else
+            {
+                // update entry
+                updateMenuEntryFromDirectory(&list->entries[menuOffset + count], entryPath);
+            }
         }
 
         // file entry
 		if (pathStat.st_mode & S_IFREG)
         {
-            // skip entry, if it's not an executable file
-            // if (!isExecutable(entryPointer->d_name))
-            // {
-            //     continue;
-            // }
-
             // add file flag
             list->entries[menuOffset + count].flags |= HSTDOS_FILE_ENTRY;
+
+            // add executable flag, if it's an executable file
+            if (isExecutable(entryPointer->d_name))
+            {
+                list->entries[menuOffset + count].flags |= HSTDOS_EXECUTABLE_ENTRY;
+            }
         }
 
         // set entry name
         strncpy(list->entries[menuOffset + count].name, entryPointer->d_name, HSTDOS_NAME_MAXLENGTH);
-
-        // add back flag, if entry is parent
-        if (isParent(entryPointer->d_name))
-        {
-            list->entries[menuOffset + count].flags |= HSTDOS_BACK_ENTRY;
-        }
 
         count++;
     }

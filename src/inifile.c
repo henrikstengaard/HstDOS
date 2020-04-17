@@ -6,41 +6,38 @@
 
 #define LINEMAXLENGTH 1024
 
-int isEmpty(char* line)
+char isEmpty(char* line)
 {
     return strlen(line) == 0;
 }
 
-int isComment(char* line)
+char isComment(char* line)
 {
     return line[0] == ':' || line[0] == '#';
 }
 
-int isSection(char* line)
+char isSection(char* line)
 {
     return line[0] == '[';
 }
 
-Section* parseIniSection(char* line)
+char isSectionNameEqual(char *sectionName, char* line)
 {
-    Section* section;
     char delim[] = "[]";
     char *ptr;
+
+    if (line[0] != '[')
+    {
+        return 0;
+    }
+    
     ptr = strtok(line, delim);
 
-    if (ptr == NULL || ptr[0] == '\0')
-    {
-        return NULL;
-    }
-
-    section = initIniSection();
-    strcpy(section->name, ptr);
-    return section;
+    return ptr != NULL || ptr[0] != '\0' && stricmp(sectionName, ptr);
 }
 
-Property* parseIniProperty(char* line)
+char parseIniProperty(IniProperty* property, char* line)
 {
-    Property* property;
     char* delimiterPointer;
     int delimiterIndex;
     int valueLength;
@@ -48,38 +45,39 @@ Property* parseIniProperty(char* line)
     delimiterPointer = strchr(line, '=');
     delimiterIndex = (int)(delimiterPointer - line);
 
-    // return null, if line doesn't contain '=' delimiter
+    // return false, if line doesn't contain '=' delimiter
     if (delimiterIndex <= 0)
     {
-        return NULL;
+        return 0;
     }
 
-    property = initIniProperty();
-    strncpy(property->name, line, delimiterIndex);
+    strncpy(
+        property->name,
+        line,
+        delimiterIndex > HSTDOS_INI_NAME_MAXLENGTH ? HSTDOS_INI_NAME_MAXLENGTH : delimiterIndex);
     property->name[delimiterIndex] = '\0';
     valueLength = strlen(line) - delimiterIndex - 1;
-    strncpy(property->value, &line[delimiterIndex+1], valueLength);
+    strncpy(
+        property->value,
+        &line[delimiterIndex+1],
+        valueLength > HSTDOS_INI_VALUE_MAXLENGTH ? HSTDOS_INI_VALUE_MAXLENGTH : valueLength);
     property->value[valueLength] = '\0';
-    return property;
+
+    return 1;
 }
 
-IniData* readIniFile(char* path)
+char readSectionFromIniFile(IniSection *section, char *path)
 {
-    FILE* filePointer;
+    FILE *filePointer;
     char line[LINEMAXLENGTH];
-    int i;
-    Property* property = NULL;
-    Section* section = NULL;
-    IniData* iniData = NULL;
+    char inSection = 0;
 
     filePointer = fopen(path, "r");
 
     if (filePointer == NULL)
     {
-        return NULL;
+        return 0;
     }
-
-    iniData = initIniData();
 
     // read lines from file
     while(fgets(line, LINEMAXLENGTH, filePointer))
@@ -96,39 +94,32 @@ IniData* readIniFile(char* path)
         // parse section
         if (isSection(line))
         {
-            section = parseIniSection(line);
-
-            // add section, if it's not null
-            if (section != NULL)
+            if (inSection)
             {
-                addIniSection(iniData->sections, section);
+                break;
             }
+
+            inSection = isSectionNameEqual(section->name, line);
 
             continue;
         }
 
-        // skip line, if section is null
-        if (section == NULL)
+        // skip line, if not in section
+        if (!inSection)
         {
             continue;
         }
 
         // parse property
-        property = parseIniProperty(line);
-
-        // skip property, if it's null
-        if (property == NULL)
+        if (parseIniProperty(&section->properties[section->count], line))
         {
-            continue;
+            section->count++;
         }
-
-        // add property to section
-        addIniProperty(section->properties, property);
     }
 
     fclose(filePointer);
 
-    return iniData;
+    return 1;
 }
 
 #endif

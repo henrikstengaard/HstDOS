@@ -241,7 +241,7 @@ int main(int argc, char *argv[])
 	// hstDosPath = argv[0]; // needed to reference to where hstdos is executed from to load hstdos.ini with general settings
 	// hstdos.ini, style=static/list
 
-	count = getMenuEntriesFromPath(
+	count = readMenuEntriesFromPath(
 		&menuList,
 		menuList.offset,
 		level->path,
@@ -382,7 +382,7 @@ int main(int argc, char *argv[])
 				level->dirOffset -= HSTDOS_ENTRIES_VISIBLE;
 
 				// read prev entries appending them to menu list
-				count = getMenuEntriesFromPath(
+				count = readMenuEntriesFromPath(
 					&menuList,
 					menuList.offset,
 					level->path,
@@ -397,7 +397,7 @@ int main(int argc, char *argv[])
 				if (menuList.count < HSTDOS_ENTRIES_VISIBLE * 2)
 				{
 					// read next entries appending them to menu list
-					count = getMenuEntriesFromPath(
+					count = readMenuEntriesFromPath(
 						&menuList,
 						menuList.offset + menuList.count,
 						level->path,
@@ -422,7 +422,7 @@ int main(int argc, char *argv[])
 				}
 
 				// read next entries appending them to menu list
-				count = getMenuEntriesFromPath(
+				count = readMenuEntriesFromPath(
 					&menuList,
 					menuList.offset + menuList.count,
 					level->path,
@@ -479,11 +479,13 @@ int main(int argc, char *argv[])
 			input.navigationFlags &= ~(HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_START);
 		}
 
+		// enter menu entry
 		if (input.navigationFlags & HSTDOS_NAVIGATE_ENTER)
 		{
 			combinePath(entryPath, level->path, menuEntry.name);
 			
-			if (input.navigationFlags & HSTDOS_NAVIGATE_START && menuEntry.flags & (HSTDOS_FILE_ENTRY | HSTDOS_AUTOSTART_ENTRY))
+			// write run file, if entry is a file and is executable or has autostart
+			if (input.navigationFlags & HSTDOS_NAVIGATE_START && (menuEntry.flags & (HSTDOS_FILE_ENTRY | HSTDOS_EXECUTABLE_ENTRY) == (HSTDOS_FILE_ENTRY | HSTDOS_EXECUTABLE_ENTRY) || menuEntry.flags & (HSTDOS_AUTOSTART_ENTRY)))
 			{
 				// write run file to start menu entry
 				writeRunFile(menuEntry.flags & HSTDOS_DIR_ENTRY ? entryPath : level->path, &menuEntry);
@@ -514,13 +516,14 @@ int main(int argc, char *argv[])
 				menuList.count = 0;
 				
 				// set menu title to entry title or name
-				strncpy(
+				menuList.title[0] = '\0';
+				strncat(
 					menuList.title,
 					menuEntry.title[0] != '\0' ? menuEntry.title : menuEntry.name,
 					HSTDOS_TITLE_MAXLENGTH);
 
 				// read menu list entries for level
-				count = getMenuEntriesFromPath(
+				count = readMenuEntriesFromPath(
 					&menuList,
 					menuList.offset,
 					level->path,
@@ -532,6 +535,11 @@ int main(int argc, char *argv[])
 				// set level has more entries, if entries read is equal to visible entries
 				level->hasMore = count == HSTDOS_ENTRIES_VISIBLE;
 			}
+			else
+			{
+				// remove enter and start flags
+				input.navigationFlags &= ~(HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_START);				
+			}			
 		}
 		if (input.navigationFlags & HSTDOS_NAVIGATE_BACK)
 		{
@@ -548,7 +556,7 @@ int main(int argc, char *argv[])
 				menuList.count = level->menuCount;
 
 				// read menu list entries for level
-				getMenuEntriesFromPath(
+				readMenuEntriesFromPath(
 					&menuList,
 					menuList.offset,
 					level->path,

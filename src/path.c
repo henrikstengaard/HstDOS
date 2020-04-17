@@ -16,17 +16,17 @@ char* getCurrentPath()
 	return path;
 }
 
-int isCurrent(char* name)
+char isCurrent(char* name)
 {
     return name[0] == '.' && name[1] == '\0';
 }
 
-int isParent(char* name)
+char isParent(char* name)
 {
     return name[0] == '.' && name[1] == '.' && name[2] == '\0';
 }
 
-int isExecutable(char* name)
+char isExecutable(char* name)
 {
     int length;
     length = strlen(name);
@@ -56,7 +56,7 @@ int isExecutable(char* name)
     return 0;
 }
 
-int isBatchFile(char* name)
+char isBatchFile(char* name)
 {
     int length;
     length = strlen(name);
