@@ -186,7 +186,6 @@ int main(int argc, char *argv[])
 	char entryPath[255] = {0};
 	int keyCode;
 	int readPrev, readNext, update, count, showDebug;
-	//enum NavigationFlags navigationFlags;
 	Input input;
 	MenuList menuList;
 	MenuEntry menuEntry;
@@ -575,16 +574,18 @@ int main(int argc, char *argv[])
 
 				// restore menu list offset and count
 				menuList.offset = level->menuOffset;
-				menuList.count = level->menuCount;
 
 				// read menu list entries for level
-				readMenuEntriesFromPath(
+				count = readMenuEntriesFromPath(
 					&menuList,
 					menuList.offset,
 					level->path,
 					level->dirOffset,
-					menuList.count,
+					level->menuCount,
 					navigation.count <= 1);
+
+				menuList.count = 0;
+				menuList.count += count;
 			}
 		}
 	} while ((input.navigationFlags & (HSTDOS_NAVIGATE_QUIT | HSTDOS_NAVIGATE_START)) == 0);
