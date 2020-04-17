@@ -13,6 +13,7 @@
 #include "delay.h"
 #include "ui.c"
 #include "dialog.c"
+#include "options.c"
 #include "version.h"
 
 #define HSTDOS_ENTRIES_VISIBLE 20
@@ -22,24 +23,19 @@
 #define STATIC_SELECTION_Y = 4
 #define STATIC_SELECTION_CENTER = 15
 
-const char* LINE80 = "                                                                                \0";
-
-void drawCenterTitle(char* title)
+void drawCenterTitle(HstDosOptions *options, char *title)
 {
+	int i;
 	char text[255];
 
 	// background
-	textbackground(LIGHTCYAN);
-	gotoxy(1, 1);
-	cprintf(LINE80);
-	gotoxy(1, 2);
-	cprintf(LINE80);
-	gotoxy(1, 3);
-	cprintf(LINE80);
+	textbackground(options->titleBackgroundColor);
+	window(1, 1, 80, 3);
+	clrscr();
+	window(1, 1, 80, 25);
 
 	// title text
-	textcolor(WHITE);
-
+	textcolor(options->titleTextColor);
 	if (title != NULL && title[0] != '\0')
 	{
 		strcpy(text, title);
@@ -48,47 +44,45 @@ void drawCenterTitle(char* title)
 	{
 		sprintf(text, "HstDOS v%s", HSTDOS_APPLICATION_VERSION);
 	}
-	
 	gotoxy(getCenterX(text), 2);
 	cprintf("%s", text);
-	// gotoxy(1, 1);
-	// cprintf("%u", coreleft());
+
+	// shadow top
+	textbackground(options->shadowBackgroundColor);
+	textcolor(options->shadowTextColor);
+	gotoxy(1,4);
+	for (i = 0; i < 80; i++)
+	{
+		text[i] = 223;
+
+	}
+	text[80] = '\0';
+	cprintf(text);
+
+	// shadow bottom
+	gotoxy(1,5);
+	for (i = 0; i < 80; i++)
+	{
+		text[i] = 220;
+	}
+	text[80] = '\0';
+	cprintf(text);
+
+	// copy shadow bottom to last row
+	gettext(1, 5, 80, 5, text);
+	puttext(1, 25, 80, 25, text);
 }
 
-void drawCenterMenu(MenuList *menuList, MenuLevel *level)
+void drawCenterMenu(HstDosOptions *options, MenuList *menuList, MenuLevel *level)
 {
-	int menuBackgroundColor;
-	int menuTextColor;
-	int selectBackgroundColor;
-	int selectTextColor;
 	char buffer[255];
 	int i, y, start, end;
 	MenuEntry* menuEntry;
 
-	menuBackgroundColor = BLACK;
-	menuTextColor = LIGHTGRAY;
-	selectBackgroundColor = LIGHTBLUE;
-	selectTextColor = WHITE;
-
-	textbackground(menuBackgroundColor);
-	for (y = 4; y <= 25; y++)
-	{
-		// clear row y
-		if (y <= 24)
-		{
-			gotoxy(1, y);
-			cprintf(LINE80);
-		}
-
-		if (y == 24)
-		{
-			gettext(1, y, 80, y, buffer);
-		}
-		else if (y == 25)
-		{
-			puttext(1, y, 80, y, buffer);
-		}
-	}
+	textbackground(options->menuBackgroundColor);
+	window(1, 5, 80, 24);
+	clrscr();
+	window(1, 1, 80, 25);
 
 	y = 5 + (level->selected > 10 ? 0 : 10 - level->selected);
 	start = (level->selected > 10 ? level->selected - 10 : 0) - level->dirOffset;
@@ -101,18 +95,24 @@ void drawCenterMenu(MenuList *menuList, MenuLevel *level)
 
 		if (i == level->selected - level->dirOffset)
 		{
-			textbackground(selectBackgroundColor);
-			textcolor(selectTextColor);
-			gotoxy(1, y);
-			cprintf(LINE80);
+			textbackground(options->selectedBackgroundColor);
+			textcolor(options->selectedTextColor);
+			window(1, y, 80, y);
+			clrscr();
+			window(1, 1, 80, 25);
 		}
 		else
 		{
-			textbackground(menuBackgroundColor);
-			textcolor(menuTextColor);
+			textbackground(options->menuBackgroundColor);
+			textcolor(options->menuTextColor);
 		}
 
-		if (menuEntry->title[0] != '\0')
+		if (menuEntry->flags & HSTDOS_BACK_ENTRY)
+		{
+			gotoxy(getCenterX(options->backText), y);
+			cprintf("%s", options->backText);			
+		}
+		else if (menuEntry->title[0] != '\0')
 		{
 			gotoxy(getCenterX(menuEntry->title), y);
 			cprintf("%s", menuEntry->title);			
@@ -135,13 +135,16 @@ char navigateReadNext(MenuList *menuList, MenuLevel *level)
 	return level->hasMore && level->selected > level->dirOffset + menuList->count - 10;
 }
 
-void writeRunFile(char* path, MenuEntry* menuEntry)
+void writeRunFile(HstDosOptions *options, char* path, MenuEntry* menuEntry)
 {
+	char runPath[HSTDOS_PATH_MAXLENGTH];
 	char drive[2];
     FILE* filePointer;
 	char* command;
 
-    filePointer = fopen("C:\\_run.bat", "w");
+	combinePath(runPath, options->tempPath, "_RUN.BAT");
+
+    filePointer = fopen(runPath, "w");
     if (filePointer == NULL)
     {
 		printf("failed to open file\n");
@@ -186,11 +189,21 @@ int main(int argc, char *argv[])
 	char entryPath[255] = {0};
 	int keyCode;
 	int readPrev, readNext, update, count, showDebug;
+	HstDosOptions options;
 	Input input;
 	MenuList menuList;
 	MenuEntry menuEntry;
 	MenuNavigation navigation;
 	MenuLevel *level;
+
+	// initialize options
+	initOptions(&options);
+
+	// set hstdos path
+	getParentPath(options.hstDosPath, argv[0]);
+
+	// read options from directory with hstdos.exe
+	readOptions(&options);
 
 	// initialize input
 	initInput(&input);
@@ -235,16 +248,15 @@ int main(int argc, char *argv[])
 	menuList.offset = 0;
 	menuList.count = 0;
 
-	// hstDosPath = argv[0]; // needed to reference to where hstdos is executed from to load hstdos.ini with general settings
-	// hstdos.ini, style=static/list
-
+	// read meu entries from path
 	count = readMenuEntriesFromPath(
 		&menuList,
 		menuList.offset,
 		level->path,
 		level->dirOffset,
 		HSTDOS_ENTRIES_VISIBLE,
-		navigation.count <= 1);
+		navigation.count <= 1,
+		options.onlyExecutableFiles);
 	menuList.count += count;
 
 	// set level has more entries, if entries read is equal to visible entries
@@ -257,10 +269,10 @@ int main(int argc, char *argv[])
 
 	do
 	{
-		textbackground(BLACK);
+		textbackground(options.menuBackgroundColor);
 		clrscr();
-		drawCenterTitle(menuList.title);
-		drawCenterMenu(&menuList, level);
+		drawCenterTitle(&options, menuList.title);
+		drawCenterMenu(&options, &menuList, level);
 
 		if (input.hasMouse)
 		{
@@ -311,7 +323,8 @@ int main(int argc, char *argv[])
 					else if (input.mouseYConsole >= 5 && input.mouseYConsole <= 24 && input.mouseButton > 0)
 					{
 						// goto and enter menu entry
-						input.navigationFlags |= (HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_GOTO);
+						input.navigationFlags |= HSTDOS_NAVIGATE_ENTER;
+						input.navigationFlags |= HSTDOS_NAVIGATE_GOTO;
 
 						if (input.mouseButton & 1)
 						{
@@ -319,11 +332,11 @@ int main(int argc, char *argv[])
 							input.navigationFlags |= HSTDOS_NAVIGATE_START;
 						}
 					}
-					else if (input.mouseYConsole >= 5 && input.mouseYConsole <= 24 && input.mouseButton & 2)
-					{
-						// goto and enter menu entry
-						input.navigationFlags |= (HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_GOTO);
-					}					
+					// else if (input.mouseYConsole >= 5 && input.mouseYConsole <= 24 && input.mouseButton & 2)
+					// {
+					// 	// goto and enter menu entry
+					// 	input.navigationFlags |= (HSTDOS_NAVIGATE_ENTER | HSTDOS_NAVIGATE_GOTO);
+					// }					
 					else if (input.mouseYConsole == 25 && input.mouseButton & 1)
 					{
 						// navigate pagedown
@@ -337,19 +350,17 @@ int main(int argc, char *argv[])
 			{
 				i = input.mouseYConsole - 15;
 
-				if (level->selected + i >= 0 && level->selected + i < level->dirOffset + menuList.count - 1)
+				if (level->selected + i >= 0 && level->selected + i < level->dirOffset + menuList.count)
 				{
 					level->selected += i;
 
 					if (i < 0)
 					{
 						readPrev = navigateReadPrev(level);
-
 					}
 					else if (i > 0)
 					{
 						readNext = navigateReadNext(&menuList, level);
-						
 					}
 					update = 1;					
 				}
@@ -402,7 +413,8 @@ int main(int argc, char *argv[])
 					level->path,
 					level->dirOffset + 1,
 					HSTDOS_ENTRIES_VISIBLE,
-					navigation.count <= 1);
+					navigation.count <= 1,
+					options.onlyExecutableFiles);
 				menuList.count += count;
 
 				// set level has more entries, if entries read is equal to visible entries
@@ -417,7 +429,8 @@ int main(int argc, char *argv[])
 						level->path,
 						level->dirOffset + menuList.count + 1,
 						(HSTDOS_ENTRIES_VISIBLE * 2) - menuList.count,
-						navigation.count <= 1);
+						navigation.count <= 1,
+						options.onlyExecutableFiles);
 					menuList.count += count;
 				
 					// set level has more entries, if entries read is equal to visible entries
@@ -442,7 +455,8 @@ int main(int argc, char *argv[])
 					level->path,
 					level->dirOffset + HSTDOS_ENTRIES_VISIBLE + 1,
 					HSTDOS_ENTRIES_VISIBLE,
-					navigation.count <= 1);
+					navigation.count <= 1,
+					options.onlyExecutableFiles);
 				menuList.count += count;
 
 				// set level has more entries, if entries read is equal to visible entries
@@ -451,7 +465,7 @@ int main(int argc, char *argv[])
 
 			if (update)
 			{
-				drawCenterMenu(&menuList, level);
+				drawCenterMenu(&options, &menuList, level);
 			}
 
 			if (showDebug)
@@ -459,13 +473,14 @@ int main(int argc, char *argv[])
 				textbackground(RED);
 				textcolor(WHITE);
 				gotoxy(1, 4);
-				cprintf("DEBUG: s = %d, do = %d, mo = %d, mc = %d, rp = %d, rn = %d   ",
+				cprintf("DEBUG: s = %d, do = %d, mo = %d, mc = %d, rp = %d, rn = %d, cl = %u   ",
 					level->selected,
 					level->dirOffset,
 					menuList.offset,
 					menuList.count,
 					readPrev,
-					readNext);
+					readNext,
+					coreleft());
 				if (input.hasMouse)
 				{
 					gotoxy(1, 5);
@@ -504,10 +519,12 @@ int main(int argc, char *argv[])
 			combinePath(entryPath, level->path, menuEntry.name);
 			
 			// write run file, if entry is a file and is executable or has autostart
-			if (input.navigationFlags & HSTDOS_NAVIGATE_START && (menuEntry.flags & (HSTDOS_FILE_ENTRY | HSTDOS_EXECUTABLE_ENTRY) == (HSTDOS_FILE_ENTRY | HSTDOS_EXECUTABLE_ENTRY) || menuEntry.flags & (HSTDOS_AUTOSTART_ENTRY)))
+			if (input.navigationFlags & HSTDOS_NAVIGATE_START && 
+				((menuEntry.flags & (HSTDOS_FILE_ENTRY | HSTDOS_EXECUTABLE_ENTRY)) == (HSTDOS_FILE_ENTRY | HSTDOS_EXECUTABLE_ENTRY) || 
+				menuEntry.flags & (HSTDOS_AUTOSTART_ENTRY)))
 			{
 				// write run file to start menu entry
-				writeRunFile(menuEntry.flags & HSTDOS_DIR_ENTRY ? entryPath : level->path, &menuEntry);
+				writeRunFile(&options, menuEntry.flags & HSTDOS_DIR_ENTRY ? entryPath : level->path, &menuEntry);
 			}
 			else if (menuEntry.flags & HSTDOS_DIR_ENTRY && navigation.count < HSTDOS_LEVELS_MAXCOUNT)
 			{
@@ -550,7 +567,8 @@ int main(int argc, char *argv[])
 					level->path,
 					level->dirOffset,
 					HSTDOS_ENTRIES_VISIBLE,
-					navigation.count <= 1);
+					navigation.count <= 1,
+					options.onlyExecutableFiles);
 				menuList.count += count;
 
 				// set level has more entries, if entries read is equal to visible entries
@@ -582,7 +600,8 @@ int main(int argc, char *argv[])
 					level->path,
 					level->dirOffset,
 					level->menuCount,
-					navigation.count <= 1);
+					navigation.count <= 1,
+					options.onlyExecutableFiles);
 
 				menuList.count = 0;
 				menuList.count += count;
@@ -612,7 +631,5 @@ int main(int argc, char *argv[])
 	}
 
 	// return error code 1 to indicate hstdos has quit
-	exit(1);
-
-	return 0;
+	return 1;
 }

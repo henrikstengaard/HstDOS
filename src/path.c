@@ -1,9 +1,11 @@
 #ifndef PATH_C_
 #define PATH_C_
 
+#define HSTDOS_PATH_MAXLENGTH 255
+
 char* getCurrentDrive()
 {
-	char path[255];
+	char path[HSTDOS_PATH_MAXLENGTH];
 	strcpy(path, "X:\\");
 	path[0] = 'A' + getdisk();
 	return path;
@@ -63,10 +65,31 @@ char isBatchFile(char* name)
 	return name[length - 3] == 'B' && name[length - 2] == 'A' && name[length - 1] == 'T';
 }
 
+void getParentPath(char* destination, char* path)
+{
+    int lastbackslashIndex;
+    char *lastBackslash = strrchr(path, '\\');    
+    lastbackslashIndex = (int)(lastBackslash - path);
+
+    destination[0] = '\0';
+
+    // return null, if path doesn't backslash
+    if (lastbackslashIndex <= 0)
+    {
+        return;
+    }
+
+    strncpy(destination, path, lastbackslashIndex);
+    destination[lastbackslashIndex] = '\0';
+}
+
 void getBasename(char* destination, char* path)
 {
 	int i, count;
 	int length = strlen(path);
+
+    destination[0] = '\0';
+
 	for(i = length - 1; i > 0; i--)
 	{
 		if (path[i] == '\\')

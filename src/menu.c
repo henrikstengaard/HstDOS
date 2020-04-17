@@ -58,7 +58,14 @@ void updateMenuEntryFromDirectory(MenuEntry* menuEntry, char* path)
     }
 }
 
-int readMenuEntriesFromPath(MenuList *list, int menuOffset, char *path, int dirOffset, int entries, int skipParent)
+int readMenuEntriesFromPath(
+    MenuList *list,
+    int menuOffset,
+    char *path,
+    int dirOffset,
+    int entries,
+    int skipParent,
+    int onlyExecutable)
 {
     int offset, count;
 	DIR *dirPointer = NULL;
@@ -114,9 +121,6 @@ int readMenuEntriesFromPath(MenuList *list, int menuOffset, char *path, int dirO
             {
                 // add back flag
                 list->entries[menuOffset + count].flags |= HSTDOS_BACK_ENTRY;
-
-                // set entry title to back
-                strcpy(list->entries[menuOffset + count].title, "Back");
             }
             else
             {
@@ -124,20 +128,31 @@ int readMenuEntriesFromPath(MenuList *list, int menuOffset, char *path, int dirO
                 updateMenuEntryFromDirectory(&list->entries[menuOffset + count], entryPath);
             }
         }
-
         // file entry
-		if (pathStat.st_mode & S_IFREG)
+		else if (pathStat.st_mode & S_IFREG)
         {
-            // add file flag
-            list->entries[menuOffset + count].flags |= HSTDOS_FILE_ENTRY;
-
             // add executable flag, if it's an executable file
             if (isExecutable(entryPointer->d_name))
             {
                 list->entries[menuOffset + count].flags |= HSTDOS_EXECUTABLE_ENTRY;
             }
-        }
+            else
+            {
+                // skip entry, if file is not executable and only executable is set
+                if (onlyExecutable)
+                {
+                    continue;
+                }                
+            }
 
+            // add file flag
+            list->entries[menuOffset + count].flags |= HSTDOS_FILE_ENTRY;
+        }
+        else
+        {
+            continue;
+        }
+        
         // set entry name
         list->entries[menuOffset + count].name[0] = '\0';
         strncat(list->entries[menuOffset + count].name, entryPointer->d_name, HSTDOS_NAME_MAXLENGTH);
