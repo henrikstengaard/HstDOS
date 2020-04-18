@@ -28,6 +28,53 @@ Use following keys in HstDOS:
 
 Selected entry is indicated with a blue line.
 
+# Configuration
+
+HstDOS can be configured by adding a ```HstDOS.ini``` file in same directory as ```HstDOS.exe``` and allows changing texts and colors used by HstDOS to show menus.
+
+The default ```HstDOS.ini``` file has following settings:
+
+```ini
+[hstdos]
+backText=< Back >
+onlyExecutableFiles=1
+titleBackgroundColor=1
+titleTextColor=15
+menuBackgroundColor=0
+menuTextColor=7
+selectedBackgroundColor=5
+selectedTextColor=15
+shadowBackgroundColor=0
+shadowTextColor=8
+```
+
+HstDOS can use any of the following 16 colors for either the text color or the background color:
+
+| --- | --- |
+| Color | Value |
+| --- | --- |
+| BLACK | 0 |
+| BLUE | 1 |
+| GREEN | 2 |
+| CYAN | 3 |
+| RED | 4 |
+| MAGENTA | 5 |
+| BROWN | 6 |
+| LIGHTGRAY | 7 |
+| DARKGRAY | 8 |
+| LIGHTBLUE | 9 |
+| LIGHTGREEN | 10 |
+| LIGHTCYAN | 11 |
+| LIGHTRED | 12 |
+| LIGHTMAGENTA | 13 |
+| YELLOW | 14 |
+| WHITE | 15 |
+| --- | --- |
+
+In a DOS console the colors will be shown like the following screenshot.
+
+![HstDOS](media/colors.png?raw=true)
+
 # Customizing menu entries
 
 Directory menu entries can be customized by placing a HSTDOS.INI file in the directory. It supports following customizations:
