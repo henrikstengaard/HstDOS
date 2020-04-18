@@ -13,14 +13,24 @@ HstDOS comes with following features:
 - Keyboard and mouse to navigate menus.
 - Optional customization of menu entries by adding "HSTDOS.INI" files to set title and autostart.
 - Change colors in HstDOS menus to give it a personal look and feel.
+- Requires ~90KB of conventional memory to run.
+- Uses batch file start HstDOS and run selected game or application. This is to have maximum free memory to run game or application as HstDOS quits after menu entry is selected.
 
 # Installation
 
 Install HstDOS with following steps:
-1. Unzip to "C:\", so you will have it in "C:\HSTDOS".
+1. Unzip to "C:\", so you will have files extracted to "C:\HSTDOS" and "C:\GAMES".
 2. Edit "C:\AUTOEXEC.BAT" and add directory with "HSTDOS.EXE" file to "SET PATH". For example, if your "SET PATH" is ```SET PATH=C:\DOS``` then it should be changed to ```SET PATH=C:\DOS;C:\HSTDOS```.
 
 Adding the directory with "HSTDOS.EXE" and "HD.BAT" to "SET PATH" in "AUTOEXEC.BAT" enables HstDOS to be started from any directory.
+
+HstDOS can be installed to any other directory than "C:\HSTDOS" with following changes:
+1. Edit "AUTOEXEC.BAT" and "SET PATH" to include the directory with "HSTDOS.EXE" and "HD.BAT".
+2. Restart to apply changes to "AUTOEXEC.BAT".
+
+The directory HstDOS reads menu entries from can be changed to any other directory than "C:\GAMES" with following changes:
+1. Edit "HD.BAT" and goto line with ```hstdos.exe /d c:\games```.
+2. Replace ```c:\games``` with directory to show as a menu in HstDOS.
 
 # Usage
 
