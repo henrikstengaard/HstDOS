@@ -2,52 +2,112 @@
 
 Create DOS menu's fast with zero configuration of menu entries to start your favorite games and applications.
 
-HstDOS can read directory and file names from a given directory and make it into a menu. Selecting directories will open a submenu and selecting files will start them. Files are filtered, so only executeable (.EXE, .COM) and batch (.BAT) files are shown.
+HstDOS can read directory and file names from a directory and turn it into a menu. Selecting directories will open them as a submenu and selecting executable files will start them.
 
-![HstDOS](media/hstdos_v0.2_screenshot.png?raw=true)
+![HstDOS](media/hstdos_v0.4_screenshot.png?raw=true)
+
+# Features
+
+HstDOS comes with following features:
+- Turn any directory into a menu.
+- Keyboard and mouse to navigate menus.
+- Optional customization of menu entries by adding "HSTDOS.INI" files to set title and autostart.
+- Change colors in HstDOS menus to give it a personal look and feel.
 
 # Installation
 
 Install HstDOS with following steps:
 1. Unzip to "C:\", so you will have it in "C:\HSTDOS".
-2. Edit "C:\AUTOEXEC.BAT" and add directory with "HSTDOS.EXE" file to "SET PATH". For example, if your "SET PATH" is SET PATH=C:\DOS then it should be changed to SET PATH=C:\DOS;C:\HSTDOS.
+2. Edit "C:\AUTOEXEC.BAT" and add directory with "HSTDOS.EXE" file to "SET PATH". For example, if your "SET PATH" is ```SET PATH=C:\DOS``` then it should be changed to ```SET PATH=C:\DOS;C:\HSTDOS```.
+
+Adding the directory with "HSTDOS.EXE" and "HD.BAT" to "SET PATH" in "AUTOEXEC.BAT" enables HstDOS to be started from any directory.
 
 # Usage
 
-Use following keys in HstDOS:
-- Arrow up: Move selection up.
-- Arrow down: Move selection down.
-- Arrow right: Open submenu, if entry is a directory.
-- Arrow left: Go back to parent menu, if submenu is opened.
-- Page up: Move selection one page up.
-- Page down: Move selection one page down.
-- Home: Move selection to first entry.
-- End: Move selection to last entry.
-- Enter: Select entry. If entry is a file or a directory with autostart, it will be started. If entry is a directory without autostart, it will be opened as a submenu.
-- Esc: Quit HstDOS.
+Start HstDOS by typing ```hd``` and press enter.
 
-Selected entry is indicated with a blue line.
+Navigate to the game or application to start.
+
+HstDOS will quit, when starting a game or application will to free memory.
+
+After quitting game or application, HstDOS will start again ready to start next game or application.
 
 # Navigation
 
-## Keyboard
+Keyboard and mouse can be used to nagivate menus in HstDOS.
 
-## Mouse
+The selected menu entry is indicated with a magenta line in the middle of the screen.
 
-HstDOS detects if a mouse present and supports following navigation:
+Menus in HstDOS supports following navigation:
 
 | Navigation | Description |
 | --- | --- |
-| Start or enter | Left click on menu entry to start or enter the menu entry. If menu entry is a directory, it will be opened as a submenu. If menu entry is back entry as first menu entry in a submenu, it will go back to parent menu. If autostart is configured for the menu entry, it will be started. |
-| Enter | Right click on menu entry to enter the menu entry. If menu entry is a directory, it will be opened as a submenu. If menu entry is back entry as first menu entry in a submenu, it will go back to parent menu. |
-| Page up | Left click on top shadow above menu entries. |
-| Page down | Left click on bottom shadow below menu entries. |
+| Start | Start the selected menu entry, if it's an executable file or a directory with autostart. If menu entry is a directory, it will be opened as a submenu. If menu entry is a back entry (```< Back >```) in a submenu, it will go back to parent menu. |
+| Browse | Browse the selected menu entry, if it's a directory. |
+| Back | Returns back to parent menu from submenu. |
+| One up | Move selected menu entry one up. |
+| One down | Move selected menu entry one down. |
+| Page up | Moved selected menu entry a page up. |
+| Page down | Moved selected menu entry a page down. |
+| First | Move selected to first menu entry. |
+
+## Keyboard
+
+Menus in HstDOS supports following keyboard presses:
+
+| Keyboard press | Navigation |
+| --- | --- |
+| Arrow up | One up |  
+| Arrow down | One down |  
+| Arrow right | Browse |  
+| Arrow left | Back |
+| Enter | Start |
+| Page up | Page up |
+| Page down | Page down |
+| Home | First |
+| F1 | Show about |
+| Esc | Quit HstDOS |
+
+## Mouse
+
+Menus in HstDOS supports following mouse actions:
+
+| Mouse action | Navigation |
+| --- | --- |
+| Move mouse | Moves mouse cursor on screen |
+| Left click on menu entry | Start |
+| Right click on menu entry | Browse |
+| Left click on top shadow above menu entries | Page up |
+| Left click on bottom shadow below menu entries | Page down |
+
+# Menu entries
+
+Menu entries can be customized placing a "HSTDOS.INI" file directories and it can be used to change following:
+- Title
+- Autostart
+
+Title can be set which can change a directory menu entry from ```JILL``` to ```Jill of the Jungle```.
+
+Autostart can be set to automatically run a command, when the menu entry is started. For the game Jill of the Jungle "JILL.EXE" starts the game and can be set as autostart.
+
+Example of "HSTDOS.INI" placed in "C:\GAMES\JILL" directory to customize menu entry:
+```ini
+[menu]
+title=Jill of the Jungle
+autostart=jill.exe
+```
+
+Example of "HSTDOS.INI" placed in "C:\GAMES" directory to customize menu title:
+```ini
+[menu]
+title=My favorite games
+```
 
 # Configuration
 
-HstDOS can be configured by adding a ```HstDOS.ini``` file in same directory as ```HstDOS.exe``` and allows changing texts and colors used by HstDOS to show menus.
+HstDOS can be configured by adding a "HSTDOS.INI" file in same directory as "HSTDOS.EXE" and allows changing texts and colors used by HstDOS to show menus.
 
-The default ```HstDOS.ini``` file has following settings.
+The default "HSTDOS.INI" file has following settings.
 
 ```ini
 [hstdos]
@@ -65,7 +125,7 @@ shadowTextColor=8
 
 Description of settings:
 - backText: Set text shown as first menu entry in submenus to nagivate back.
-- onlyExecutableFiles: If set to 1, HstDOS will only show executeable files: .EXE, .COM, .BAT.
+- onlyExecutableFiles: If set to 1, HstDOS will only show executeable files: .EXE, .COM, .BAT. If set to 0, all files are shown.
 - titleBackgroundColor: Set background color of the title.
 - titleTextColor: Set text color of the title.
 - menuBackgroundColor: Set background color of the menu entries.
@@ -100,25 +160,8 @@ In a DOS console the colors will be shown like the following screenshot.
 
 ![HstDOS](media/colors.png?raw=true)
 
-# Menu entries
-
-Directory menu entries can be customized by placing a HSTDOS.INI file in the directory. It supports following customizations:
-- Title
-- Autostart
-
-Title can be set which can change a directory menu entry from ```JILL``` to ```Jill of the Jungle```.
-
-Autostart can be set to automatically run a command, when the directory is selected. For the game Jill of the Jungle "JILL.EXE" starts the game and can be set as autostart.
-
-Example of "HSTDOS.INI" placed in "JILL" directory:
-```
-[menu]
-title=Jill of the Jungle
-autostart=jill.exe
-```
-
 # Development
 
 It's written in C and compiled with Turbo C v3.0 via DOSBox.
 
-Bugs exist and it will crash as it's in a very early development state.
+HstDOS is build from a Powershell console by running "build.ps1" script. It requires DOSBox is installed.
