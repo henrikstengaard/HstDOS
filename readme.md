@@ -28,6 +28,26 @@ Use following keys in HstDOS:
 
 Selected entry is indicated with a blue line.
 
+# Navigation
+
+## Keyboard
+
+## Mouse
+
+HstDOS detects if a mouse present and supports following navigation:
+
+| Navigation | Description |
+| --- | --- |
+| Start or enter | Left click on menu entry to start or enter the menu entry:
+- If menu entry is a directory, it will be opened as a submenu.
+- If menu entry is back entry as first menu entry in a submenu, it will go back to parent menu.
+- If autostart is configured for the menu entry, it will be started. |
+| Enter | Right click on menu entry to enter the menu entry:'
+- If menu entry is a directory, it will be opened as a submenu.
+- If menu entry is back entry as first menu entry in a submenu, it will go back to parent menu. |
+| Page up | Left click on top shadow above menu entries. |
+| Page down | Left click on bottom shadow below menu entries. |
+
 # Configuration
 
 HstDOS can be configured by adding a ```HstDOS.ini``` file in same directory as ```HstDOS.exe``` and allows changing texts and colors used by HstDOS to show menus.
@@ -47,6 +67,18 @@ selectedTextColor=15
 shadowBackgroundColor=0
 shadowTextColor=8
 ```
+
+Description of settings:
+- backText: Set text shown as first menu entry in submenus to nagivate back.
+- onlyExecutableFiles: If set to 1, HstDOS will only show executeable files: .EXE, .COM, .BAT.
+- titleBackgroundColor: Set background color of the title.
+- titleTextColor: Set text color of the title.
+- menuBackgroundColor: Set background color of the menu entries.
+- menuTextColor: Set text color of the menu entries.
+- selectedBackgroundColor: Set background color of the selected menu entry.
+- selectedTextColor: Set text color of the selected menu entry.
+- shadowBackgroundColor: Set background color of the shadow shown below the title and in the bottom of the screen.
+- shadowTextColor: Set text color of the shadow shown below the title and in the bottom of the screen.
 
 HstDOS can use any of the following 16 colors for either the text color or the background color.
 
@@ -73,7 +105,7 @@ In a DOS console the colors will be shown like the following screenshot.
 
 ![HstDOS](media/colors.png?raw=true)
 
-# Customizing menu entries
+# Menu entries
 
 Directory menu entries can be customized by placing a HSTDOS.INI file in the directory. It supports following customizations:
 - Title
