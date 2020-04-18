@@ -38,13 +38,8 @@ HstDOS detects if a mouse present and supports following navigation:
 
 | Navigation | Description |
 | --- | --- |
-| Start or enter | Left click on menu entry to start or enter the menu entry:
-- If menu entry is a directory, it will be opened as a submenu.
-- If menu entry is back entry as first menu entry in a submenu, it will go back to parent menu.
-- If autostart is configured for the menu entry, it will be started. |
-| Enter | Right click on menu entry to enter the menu entry:'
-- If menu entry is a directory, it will be opened as a submenu.
-- If menu entry is back entry as first menu entry in a submenu, it will go back to parent menu. |
+| Start or enter | Left click on menu entry to start or enter the menu entry. If menu entry is a directory, it will be opened as a submenu. If menu entry is back entry as first menu entry in a submenu, it will go back to parent menu. If autostart is configured for the menu entry, it will be started. |
+| Enter | Right click on menu entry to enter the menu entry. If menu entry is a directory, it will be opened as a submenu. If menu entry is back entry as first menu entry in a submenu, it will go back to parent menu. |
 | Page up | Left click on top shadow above menu entries. |
 | Page down | Left click on bottom shadow below menu entries. |
 
