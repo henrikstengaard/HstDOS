@@ -43,7 +43,7 @@ Menus in HstDOS supports following navigation:
 | Navigation | Description |
 | --- | --- |
 | Start | Start the selected menu entry, if it's an executable file or a directory with autostart. If menu entry is a directory, it will be opened as a submenu. If menu entry is a back entry (```< Back >```) in a submenu, it will go back to parent menu. |
-| Browse | Browse the selected menu entry, if it's a directory. |
+| Browse | Browse the selected menu entry by entering it as a submenu, if it's a directory. |
 | Back | Returns back to parent menu from submenu. |
 | One up | Move selected menu entry one up. |
 | One down | Move selected menu entry one down. |
