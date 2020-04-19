@@ -19,7 +19,7 @@ HstDOS comes with following features:
 # Installation
 
 Install HstDOS with following steps:
-1. Unzip to "C:\", so you will have files extracted to "C:\HSTDOS" and "C:\GAMES".
+1. Unzip to "C:\\", so you will have files extracted to "C:\HSTDOS" and "C:\GAMES".
 2. Edit "C:\AUTOEXEC.BAT" and add directory with "HSTDOS.EXE" file to "SET PATH". For example, if your "SET PATH" is ```SET PATH=C:\DOS``` then it should be changed to ```SET PATH=C:\DOS;C:\HSTDOS```.
 
 Adding the directory with "HSTDOS.EXE" and "HD.BAT" to "SET PATH" in "AUTOEXEC.BAT" enables HstDOS to be started from any directory.
@@ -44,7 +44,7 @@ After quitting game or application, HstDOS will start again ready to start next 
 
 # Navigation
 
-Keyboard and mouse can be used to nagivate menus in HstDOS.
+Keyboard and mouse can be used to navigate menus in HstDOS.
 
 The selected menu entry is indicated with a magenta line in the middle of the screen.
 
@@ -96,7 +96,7 @@ Menu entries can be customized placing a "HSTDOS.INI" file directories and it ca
 - Title
 - Autostart
 
-Title can be set which can change a directory menu entry from ```JILL``` to ```Jill of the Jungle```.
+Title can be set which can change a directory menu entry from for example ```JILL``` to ```Jill of the Jungle```.
 
 Autostart can be set to automatically run a command, when the menu entry is started. For the game Jill of the Jungle "JILL.EXE" starts the game and can be set as autostart.
 
@@ -134,7 +134,7 @@ shadowTextColor=8
 ```
 
 Description of settings:
-- backText: Set text shown as first menu entry in submenus to nagivate back.
+- backText: Set text shown as first menu entry in submenus to navigate back.
 - onlyExecutableFiles: If set to 1, HstDOS will only show executeable files: .EXE, .COM, .BAT. If set to 0, all files are shown.
 - titleBackgroundColor: Set background color of the title.
 - titleTextColor: Set text color of the title.
