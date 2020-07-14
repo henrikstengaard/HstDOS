@@ -7,7 +7,7 @@
 #define HSTDOS_LEVELS_MAXCOUNT 10
 #define HSTDOS_NAME_MAXLENGTH 13
 #define HSTDOS_TITLE_MAXLENGTH 81
-#define HSTDOS_COMMAND_MAXLENGTH 81
+#define HSTDOS_COMMAND_MAXLENGTH 128
 
 enum EntryFlags {
 	HSTDOS_DIR_ENTRY = 1,
@@ -18,6 +18,8 @@ enum EntryFlags {
 };
 
 typedef struct {
+    long offset;
+    char path[HSTDOS_PATH_MAXLENGTH];
     char name[HSTDOS_NAME_MAXLENGTH];
     char title[HSTDOS_TITLE_MAXLENGTH];
     char command[HSTDOS_COMMAND_MAXLENGTH];

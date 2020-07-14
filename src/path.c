@@ -1,7 +1,7 @@
 #ifndef PATH_C_
 #define PATH_C_
 
-#define HSTDOS_PATH_MAXLENGTH 255
+#define HSTDOS_PATH_MAXLENGTH 80
 
 char* getCurrentDrive()
 {

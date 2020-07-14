@@ -14,6 +14,7 @@
 #include "ui.c"
 #include "dialog.c"
 #include "options.c"
+#include "index.c"
 #include "version.h"
 
 #define HSTDOS_ENTRIES_VISIBLE 20
@@ -242,6 +243,10 @@ int main(int argc, char *argv[])
 		level->path[0] = '\0';
 		strncat(level->path, getCurrentPath(), HSTDOS_PATH_MAXLENGTH);
 	}
+
+	buildIndex(level->path);
+	printf("index ok\n");
+	return 0;
 
 	// clear menu
 	clearMenuList(&menuList, 0, HSTDOS_ENTRIES_MAXCOUNT);

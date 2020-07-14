@@ -86,6 +86,80 @@ void updateMenuEntryFromDirectory(MenuEntry* menuEntry, char* path)
     }
 }
 
+int readMenuEntry(
+    MenuEntry *entry,
+    char *path,
+    struct dirent *entryPointer,
+    int skipParent,
+    int onlyExecutable)
+{
+    char entryPath[255] = {0};
+    char parentEntry = 0;    
+    struct stat pathStat;
+
+    // combine dir and entry name
+    combinePath(entryPath, path, entryPointer->d_name);
+
+    // get entry stat
+    if(stat(entryPath, &pathStat) != 0)
+    {
+        printf("\nCan't get stat from path '%s'\n", entryPath);
+        exit(1);
+    }
+
+    // directory entry
+    if (pathStat.st_mode & S_IFDIR)
+    {
+        parentEntry = isParent(entryPointer->d_name);
+
+        // skip entry, if it's current directory
+        if (isCurrent(entryPointer->d_name) || (parentEntry && skipParent))
+        {
+            return 0;
+        }
+
+        // add directory flag
+        entry->flags |= HSTDOS_DIR_ENTRY;
+
+        if (parentEntry)
+        {
+            // add back flag
+            entry->flags |= HSTDOS_BACK_ENTRY;
+        }
+        else
+        {
+            // update entry
+            updateMenuEntryFromDirectory(entry, entryPath);
+        }
+    }
+    // file entry
+    else if (pathStat.st_mode & S_IFREG)
+    {
+        // add executable flag, if it's an executable file
+        if (isExecutable(entryPointer->d_name))
+        {
+            entry->flags |= HSTDOS_EXECUTABLE_ENTRY;
+        }
+        else
+        {
+            // skip entry, if file is not executable and only executable is set
+            if (onlyExecutable)
+            {
+                return 0;
+            }                
+        }
+
+        // add file flag
+        entry->flags |= HSTDOS_FILE_ENTRY;
+    }
+    
+    // set entry name
+    entry->name[0] = '\0';
+    strncat(entry->name, entryPointer->d_name, HSTDOS_NAME_MAXLENGTH);
+
+    return 1;
+}
+
 int readMenuEntriesFromPath(
     MenuList *list,
     int menuOffset,
