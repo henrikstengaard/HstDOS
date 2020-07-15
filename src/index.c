@@ -4,13 +4,12 @@
 #include "menu.c"
 #include "menudata.c"
 
-// 1. add all menu entries to index
+// 1. add all menu entries to index (done)
 // 2. quick sort entries
 // 3. foreach menu entry in index
 //    1. tokenize title
 //    2. add keywords to keyword indexes [aa-zz].dat with reference to menu entries index number
 //    3. quick sort eaach keywords index dat file
-
 
 int buildIndex(
     char *path)
@@ -28,8 +27,12 @@ int buildIndex(
     long entriesCountOffset = 0;
     long indexSize = 0;
     long entriesCount = 0;
+    char menuTitle[HSTDOS_TITLE_MAXLENGTH] = {0};
     char currentPath[HSTDOS_PATH_MAXLENGTH] = {0};
     char menuPath[HSTDOS_PATH_MAXLENGTH] = {0};
+    char magicBytes[4] = "HDIF";
+    long indexVersion = 1;
+    char isFirst = 1;
 
     // open index file for reading and writing 
     indexFile = fopen("index.dat", "w+"); 
@@ -39,6 +42,14 @@ int buildIndex(
         exit(1);
     }
 
+    fwrite(magicBytes, sizeof(char), 4, indexFile);
+    fwrite(&indexVersion, sizeof(long), 1, indexFile);
+
+    indexNextOffset = ftell(indexFile);
+    prevIndexNextOffset = indexNextOffset;
+    writeNextOffset = indexNextOffset;
+    prevWriteNextOffset = writeNextOffset;
+
     // set current path
     strncpy(currentPath, path, HSTDOS_PATH_MAXLENGTH);
 
@@ -47,21 +58,30 @@ int buildIndex(
         // seek write next offset
         fseek(indexFile, writeNextOffset, SEEK_SET);
 
-        // open directory
-        if(NULL == (dirPointer = opendir(currentPath)))
-        {
-            printf("\nCan't open directory path '%s'\n", currentPath);
-            exit(1);
-        }
-
         // write dummy entries count
         entriesCount = 0;
         fwrite(&entriesCount, sizeof(long), 1, indexFile);
         entriesCountOffset = writeNextOffset;
 
-        if (indexNextOffset == 0)
+        // read menu title
+        memset(menuTitle, 0, HSTDOS_TITLE_MAXLENGTH);
+        readMenuTitleFromDirectory(menuTitle, currentPath);
+
+        // write menu title
+        fwrite(&menuTitle, sizeof(char), HSTDOS_TITLE_MAXLENGTH, indexFile);
+
+        // update index next offset, if it's the first index
+        if (isFirst)
         {
-            indexNextOffset = sizeof(long);
+            indexNextOffset = indexNextOffset + sizeof(long) + HSTDOS_TITLE_MAXLENGTH;
+            prevIndexNextOffset = indexNextOffset;
+        }
+
+        // open directory
+        if(NULL == (dirPointer = opendir(currentPath)))
+        {
+            printf("\nCan't open directory path '%s'\n", currentPath);
+            exit(1);
         }
 
         // read directory
@@ -73,6 +93,7 @@ int buildIndex(
             memset(menuEntry.title, 0, HSTDOS_TITLE_MAXLENGTH);
             memset(menuEntry.command, 0, HSTDOS_COMMAND_MAXLENGTH);
             menuEntry.flags = 0;
+            menuEntry.offset = 0;
 
             // read menu entry
             if (!readMenuEntry(
@@ -86,7 +107,6 @@ int buildIndex(
             }
 
             entriesCount = entriesCount + 1;
-            menuEntry.offset = 0;
 
             if (menuPath != NULL && menuPath[0] != 0)
             {
@@ -107,13 +127,15 @@ int buildIndex(
             }
         }
 
-        if (indexNextOffset == sizeof(long))
+        // close directory
+        closedir(dirPointer);
+
+        if (isFirst)
         {
             indexNextEntriesCount = entriesCount;
         }
 
-        // close directory
-        closedir(dirPointer);
+        isFirst = 0;
 
         // set write next offset
         prevWriteNextOffset = writeNextOffset;
@@ -125,7 +147,7 @@ int buildIndex(
         // write entries count
         fwrite(&entriesCount, sizeof(long), 1, indexFile);
 
-        if (prevWriteNextOffset > 0 && entriesCount > 0)
+        if (prevWriteNextOffset > 0)
         {
             // seek prev index next offset
             fseek(indexFile, prevIndexNextOffset, SEEK_SET);
@@ -173,15 +195,6 @@ int buildIndex(
             // break and set current path, if menu entry is a directory
             if (menuEntry.flags & HSTDOS_DIR_ENTRY)
             {
-                // // set menu offset
-                // menuEntry.offset = writeNextOffset;
-
-                // // seek prev index next offset
-                // fseek(indexFile, prevIndexNextOffset, SEEK_SET);
-
-                // // write struct to file
-                // fwrite(&menuEntry, sizeof(MenuEntry), 1, indexFile);
-
                 // set menu path
                 strncpy(menuPath, menuEntry.path, HSTDOS_PATH_MAXLENGTH);
 
@@ -196,6 +209,8 @@ int buildIndex(
         {
             indexNextIndex = 0;
             fread(&indexNextEntriesCount, sizeof(long), 1, indexFile);
+
+            fread(&menuTitle, sizeof(char), HSTDOS_TITLE_MAXLENGTH, indexFile);
 
             // set index next offset
             indexNextOffset = ftell(indexFile);
