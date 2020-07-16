@@ -5,11 +5,100 @@
 #include "menudata.c"
 
 // 1. add all menu entries to index (done)
-// 2. quick sort entries
+// 2. quick sort entries (done)
 // 3. foreach menu entry in index
 //    1. tokenize title
 //    2. add keywords to keyword indexes [aa-zz].dat with reference to menu entries index number
 //    3. quick sort eaach keywords index dat file
+
+long getMenuEntryOffset(long menuIndexOffset, int entryIndex)
+{
+    return menuIndexOffset + (entryIndex * sizeof(MenuEntry));
+}
+
+int readMenuEntryFromIndex(FILE *indexFile, long menuIndexOffset, MenuEntry *menuEntry)
+{
+    fseek(indexFile, menuIndexOffset, SEEK_SET);
+    return fread(menuEntry, sizeof(MenuEntry), 1, indexFile);
+}
+
+int writeMenuEntryToIndex(FILE *indexFile, long menuIndexOffset, MenuEntry *menuEntry)
+{
+    fseek(indexFile, menuIndexOffset, SEEK_SET);
+    return fwrite(menuEntry, sizeof(MenuEntry), 1, indexFile);
+}
+
+void swapMenuIndexEntry(FILE *indexFile, long menuIndexOffset, int entryIndex1, int entryIndex2) 
+{
+    MenuEntry menuEntry1;
+    MenuEntry menuEntry2;
+    long menuEntry1Offset;
+    long menuEntry2Offset;
+
+    if (entryIndex1 == entryIndex2)
+    {
+        return;
+    }
+
+    menuEntry1Offset = getMenuEntryOffset(menuIndexOffset, entryIndex1);
+    menuEntry2Offset = getMenuEntryOffset(menuIndexOffset, entryIndex2);
+
+    // read menu entries
+    readMenuEntryFromIndex(indexFile, menuEntry1Offset, &menuEntry1);
+    readMenuEntryFromIndex(indexFile, menuEntry2Offset, &menuEntry2);
+
+    // write menu entries
+    writeMenuEntryToIndex(indexFile, menuEntry1Offset, &menuEntry2);
+    writeMenuEntryToIndex(indexFile, menuEntry2Offset, &menuEntry1);
+}
+
+/* This function takes last element as pivot, places 
+   the pivot element at its correct position in sorted 
+    array, and places all smaller (smaller than pivot) 
+   to left of pivot and all greater elements to right 
+   of pivot */
+int partitionMenuIndex(FILE *indexFile, long menuIndexOffset, int low, int high)
+{
+    MenuEntry pivot, current;
+    int i, j;
+
+    readMenuEntryFromIndex(indexFile, getMenuEntryOffset(menuIndexOffset, high), &pivot);
+
+    i = (low - 1);  // Index of smaller element  
+    for (j = low; j <= high - 1; j++) 
+    { 
+        readMenuEntryFromIndex(indexFile, getMenuEntryOffset(menuIndexOffset, j), &current);
+        // If current element is smaller than the pivot 
+        if (stricmp(current.title, pivot.title) < 0)
+        {
+            i++;    // increment index of smaller element
+            swapMenuIndexEntry(indexFile, menuIndexOffset, i, j);
+        }
+    }
+    swapMenuIndexEntry(indexFile, menuIndexOffset, i + 1, high); 
+    return (i + 1); 
+}
+
+/* The main function that implements QuickSort 
+ arr[] --> Array to be sorted, 
+  low  --> Starting index, 
+  high  --> Ending index */
+void quickSortMenuIndex(FILE *indexFile, long menuIndexOffset, int low, int high) 
+{
+    int pi;
+
+    if (low < high)
+    { 
+        /* pi is partitioning index, arr[p] is now 
+           at right place */
+        pi = partitionMenuIndex(indexFile, menuIndexOffset, low, high);
+
+        // Separately sort elements before
+        // partition and after partition
+        quickSortMenuIndex(indexFile, menuIndexOffset, low, pi - 1);
+        quickSortMenuIndex(indexFile, menuIndexOffset, pi + 1, high);
+    }
+}
 
 int buildIndex(
     char *path)
@@ -25,6 +114,7 @@ int buildIndex(
     long indexNextIndex = 0;
     long indexNextEntriesCount = 0;
     long entriesCountOffset = 0;
+    long quickSortOffset = 0;
     long indexSize = 0;
     long entriesCount = 0;
     char menuTitle[HSTDOS_TITLE_MAXLENGTH] = {0};
@@ -76,6 +166,8 @@ int buildIndex(
             indexNextOffset = indexNextOffset + sizeof(long) + HSTDOS_TITLE_MAXLENGTH;
             prevIndexNextOffset = indexNextOffset;
         }
+
+        quickSortOffset = ftell(indexFile);        
 
         // open directory
         if(NULL == (dirPointer = opendir(currentPath)))
@@ -165,16 +257,18 @@ int buildIndex(
             fwrite(&menuEntry, sizeof(MenuEntry), 1, indexFile);
         }
 
-
         // seek end of index file
         fseek(indexFile, 0, SEEK_END);
 
         // update index size
         indexSize = ftell(indexFile);
 
-        //***********************************************************
-        //TODO: quick sort entries
-        //***********************************************************
+        // quick sort menu index
+        quickSortMenuIndex(
+            indexFile,
+            quickSortOffset,
+            0,
+            entriesCount - 1);
 
         // seek index next offset
         fseek(indexFile, indexNextOffset, SEEK_SET);
