@@ -1,5 +1,6 @@
 :: hstdos path to set path in autoexec.bat
 SET PATH=%PATH;C:\HSTDOS
+SET TEMP=C:\
 
 ::
 CD HSTDOS

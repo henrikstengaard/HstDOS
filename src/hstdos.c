@@ -244,9 +244,9 @@ int main(int argc, char *argv[])
 		strncat(level->path, getCurrentPath(), HSTDOS_PATH_MAXLENGTH);
 	}
 
-	buildIndex(level->path);
-	printf("index ok\n");
-	return 0;
+	// buildIndex(level->path);
+	// printf("index ok\n");
+	// return 0;
 
 	// clear menu
 	clearMenuList(&menuList, 0, HSTDOS_ENTRIES_MAXCOUNT);
